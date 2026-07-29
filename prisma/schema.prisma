@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // swap to "postgresql" when deploying; url stays env-driven
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  coord
+  gerente
+}
+
+enum Sucursal {
+  BLVD_ZACATECAS
+  UNIVERSIDAD
+  HACIENDAS
+  LOPEZ_MATEOS
+  AYUNTAMIENTO
+  PASEO_DE_LA_CRUZ
+  RINCON_DE_ROMOS
+  JESUS_MARIA
+  GONZALEZ_GALLO
+  JUAN_PABLO
+  GUADALUPE
+  TLI
+}
+
+enum Fuente {
+  FACEBOOK
+  INSTAGRAM
+  TIKTOK
+  WHATSAPP
+  SITIO_WEB
+  REFERIDO
+  OTRO
+}
+
+enum Estado {
+  NUEVO
+  CONTACTADO
+  COTIZACION
+  SEGUIMIENTO
+  NO_RESPONDIO
+  VENTA
+  PERDIDO
+}
+
+model User {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  passwordHash String
+  role         Role
+  sucursal     Sucursal? // null for coord, required for gerente
+  createdAt    DateTime  @default(now())
+
+  @@index([role])
+}
+
+model Lead {
+  id                 String    @id @default(cuid())
+  fecha              DateTime // fecha de ingreso; immutable by gerente
+  nombre             String
+  telefono           String
+  sucursal           Sucursal
+  interes            String
+  fuente             Fuente
+  estado             Estado    @default(NUEVO)
+  // "Community Manager" | "Coordinador" | "Gerente <Sucursal>" — validated
+  // dynamically against the lead's own sucursal in src/lib/leadPolicy.ts,
+  // not as a fixed enum (the valid set of 3 options shifts per branch).
+  responsable        String
+  proximoSeguimiento DateTime?
+  notas              String    @default("")
+  folioCotizacion    String?
+  folioFactura       String?
+  // @db.Decimal(12, 2) once migrated to Postgres — unsupported on sqlite
+  montoVenta         Decimal?
+  fechaCierre        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([sucursal])
+  @@index([estado])
+  @@index([fecha])
+  @@index([fechaCierre])
+}

@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/*
+ * This app uses a single, deliberate light theme (white/slate backgrounds,
+ * dark slate text) throughout — it does not adapt to the visitor's OS/browser
+ * dark-mode preference. Do not reintroduce a `prefers-color-scheme: dark`
+ * override here without also re-theming every component; a partial override
+ * previously caused white text on white backgrounds for anyone in dark mode.
+ */
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -10,13 +17,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
