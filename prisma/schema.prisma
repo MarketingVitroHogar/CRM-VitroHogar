@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite" // swap to "postgresql" when deploying; url stays env-driven
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -75,8 +75,7 @@ model Lead {
   notas              String    @default("")
   folioCotizacion    String?
   folioFactura       String?
-  // @db.Decimal(12, 2) once migrated to Postgres — unsupported on sqlite
-  montoVenta         Decimal?
+  montoVenta         Decimal?  @db.Decimal(12, 2)
   fechaCierre        DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
