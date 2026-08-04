@@ -1,19 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import type { Role } from "@prisma/client";
 import { EstadoBadge } from "./EstadoBadge";
 import { OverdueIndicator } from "./OverdueIndicator";
 import { FUENTE_LABELS, SUCURSAL_LABELS } from "@/lib/catalogs";
 import { isOverdue, round2 } from "@/lib/leadPolicy";
+import { formatDateOnly } from "@/lib/dateOnly";
 import type { LeadDTO } from "@/lib/types";
 
-function fmt(dateStr: string | null) {
-  if (!dateStr) return "—";
-  return format(new Date(dateStr), "d MMM yyyy", { locale: es });
-}
+const fmt = formatDateOnly;
 
 export function LeadCard({
   lead,

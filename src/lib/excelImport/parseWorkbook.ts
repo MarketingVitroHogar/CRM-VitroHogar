@@ -18,7 +18,10 @@ function excelSerialToDate(serial: number): Date {
   // Excel's epoch is 1899-12-30 (accounts for the historical 1900 leap-year bug).
   const utcMs = Math.round((serial - 25569) * 86400 * 1000);
   const utcDate = new Date(utcMs);
-  return new Date(utcDate.getUTCFullYear(), utcDate.getUTCMonth(), utcDate.getUTCDate());
+  // Re-anchor to UTC midnight for just the calendar date — using Date.UTC
+  // (not the local-time Date constructor) so this doesn't depend on the
+  // server's timezone, matching how manually-entered dates are stored.
+  return new Date(Date.UTC(utcDate.getUTCFullYear(), utcDate.getUTCMonth(), utcDate.getUTCDate()));
 }
 
 /** Parses a date cell that may be a JS Date, an Excel serial number, or common dd/mm/yyyy or yyyy-mm-dd text. */
@@ -37,7 +40,7 @@ function parseFlexibleExcelDate(value: unknown): Date | null {
   const isoMatch = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
   if (isoMatch) {
     const [, y, m, d] = isoMatch;
-    return new Date(Number(y), Number(m) - 1, Number(d));
+    return new Date(Date.UTC(Number(y), Number(m) - 1, Number(d)));
   }
 
   // Mexican convention: dd/mm/yyyy (also accepts dd-mm-yyyy).
@@ -45,7 +48,7 @@ function parseFlexibleExcelDate(value: unknown): Date | null {
   if (slashMatch) {
     const [, d, m, yRaw] = slashMatch;
     const y = yRaw.length === 2 ? 2000 + Number(yRaw) : Number(yRaw);
-    const date = new Date(y, Number(m) - 1, Number(d));
+    const date = new Date(Date.UTC(y, Number(m) - 1, Number(d)));
     return Number.isNaN(date.getTime()) ? null : date;
   }
 

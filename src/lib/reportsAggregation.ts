@@ -2,15 +2,7 @@ import type { Lead, Sucursal } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isOverdue, round2 } from "@/lib/leadPolicy";
 import { FUENTES, SUCURSALES } from "@/lib/catalogs";
-
-function monthKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function monthRange(month: string): { start: Date; end: Date } {
-  const [year, mon] = month.split("-").map(Number);
-  return { start: new Date(year, mon - 1, 1), end: new Date(year, mon, 1) };
-}
+import { monthKeyUTC as monthKey, monthRangeUTC as monthRange } from "@/lib/dateOnly";
 
 export async function getAvailableMonths(scopeSucursal?: Sucursal | null): Promise<string[]> {
   const where = scopeSucursal ? { sucursal: scopeSucursal } : {};

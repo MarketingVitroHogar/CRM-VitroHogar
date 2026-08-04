@@ -37,6 +37,18 @@ function toDateInputValue(iso: string | null): string {
   return iso.slice(0, 10);
 }
 
+// Today in the browser's own local calendar — deliberately NOT
+// `new Date().toISOString().slice(0, 10)`, which reads today's UTC date and
+// would show tomorrow's date in Mexico for roughly the second half of every
+// local day (UTC runs ~6h ahead of Mexico City time).
+function todayDateInputValue(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 function defaultValuesFor(
   lead: LeadDTO | undefined,
   gerenteSucursal: Sucursal | null | undefined,
@@ -49,7 +61,7 @@ function defaultValuesFor(
   // disabled value that would fail validation on an untouched save.
   const estado = lead?.estado === "NUEVO" && role === "gerente" ? "CONTACTADO" : lead?.estado ?? "NUEVO";
   return {
-    fecha: lead ? toDateInputValue(lead.fecha) : toDateInputValue(new Date().toISOString()),
+    fecha: lead ? toDateInputValue(lead.fecha) : todayDateInputValue(),
     nombre: lead?.nombre ?? "",
     telefono: lead?.telefono ?? "",
     sucursal,
