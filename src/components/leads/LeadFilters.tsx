@@ -6,7 +6,13 @@ export type LeadFilterState = {
   mes: string; // "" = todos, else "YYYY-MM"
   sucursal: string; // "" = todas
   estado: string; // "" = todos
+  orden: "desc" | "asc"; // fecha: más reciente primero | más antigua primero
 };
+
+// El filtro de estado en la lista de leads no incluye "Perdido" — sigue
+// siendo un estado válido para un lead (asignable desde el formulario), solo
+// no aparece como opción para filtrar la vista principal.
+const ESTADOS_FILTRABLES = ESTADOS.filter((e) => e !== "PERDIDO");
 
 function recentMonthOptions(count = 12) {
   const now = new Date();
@@ -75,11 +81,23 @@ export function LeadFilters({
           className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
         >
           <option value="">Todos</option>
-          {ESTADOS.map((e) => (
+          {ESTADOS_FILTRABLES.map((e) => (
             <option key={e} value={e}>
               {ESTADO_LABELS[e]}
             </option>
           ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-xs font-medium text-slate-500">Ordenar por fecha</label>
+        <select
+          value={value.orden}
+          onChange={(e) => onChange({ ...value, orden: e.target.value as "desc" | "asc" })}
+          className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+        >
+          <option value="desc">Más reciente primero</option>
+          <option value="asc">Más antigua primero</option>
         </select>
       </div>
     </div>

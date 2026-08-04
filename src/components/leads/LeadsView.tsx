@@ -7,11 +7,24 @@ import { LeadFilters, type LeadFilterState } from "./LeadFilters";
 import { LeadCard } from "./LeadCard";
 import type { LeadDTO } from "@/lib/types";
 
+const LEADS_PER_PAGE = 15; // 3 columnas x 5 filas en escritorio
+
+function currentMonthValue(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
 export function LeadsView({ role }: { role: Role }) {
-  const [filters, setFilters] = useState<LeadFilterState>({ mes: "", sucursal: "", estado: "" });
+  const [filters, setFilters] = useState<LeadFilterState>({
+    mes: currentMonthValue(),
+    sucursal: "",
+    estado: "",
+    orden: "desc",
+  });
   const [leads, setLeads] = useState<LeadDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     let ignore = false;
@@ -23,6 +36,7 @@ export function LeadsView({ role }: { role: Role }) {
       if (filters.mes) params.set("mes", filters.mes);
       if (filters.estado) params.set("estado", filters.estado);
       if (role === "coord" && filters.sucursal) params.set("sucursal", filters.sucursal);
+      params.set("orden", filters.orden);
 
       try {
         const res = await fetch(`/api/leads?${params.toString()}`);
@@ -41,6 +55,13 @@ export function LeadsView({ role }: { role: Role }) {
       ignore = true;
     };
   }, [filters, role]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filters]);
+
+  const totalPages = Math.max(1, Math.ceil(leads.length / LEADS_PER_PAGE));
+  const pageLeads = leads.slice((page - 1) * LEADS_PER_PAGE, page * LEADS_PER_PAGE);
 
   async function handleDelete(id: string) {
     if (!confirm("¿Eliminar este lead? Esta acción no se puede deshacer.")) return;
@@ -79,7 +100,7 @@ export function LeadsView({ role }: { role: Role }) {
       )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {leads.map((lead) => (
+        {pageLeads.map((lead) => (
           <LeadCard
             key={lead.id}
             lead={lead}
@@ -89,6 +110,28 @@ export function LeadsView({ role }: { role: Role }) {
           />
         ))}
       </div>
+
+      {!loading && leads.length > LEADS_PER_PAGE && (
+        <div className="flex items-center justify-center gap-3 pt-2">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="rounded-md bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-200 disabled:opacity-40"
+          >
+            Anterior
+          </button>
+          <span className="text-sm text-slate-500">
+            Página {page} de {totalPages}
+          </span>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="rounded-md bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-200 disabled:opacity-40"
+          >
+            Siguiente
+          </button>
+        </div>
+      )}
     </div>
   );
 }

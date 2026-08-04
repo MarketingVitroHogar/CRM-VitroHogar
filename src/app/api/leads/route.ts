@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { assertCanCreate, ForbiddenError } from "@/lib/permissions";
 import { LeadCreateSchema } from "@/lib/validation/leadSchemas";
 import { defaultResponsableFor, isValidResponsableFor, resolveFechaCierre } from "@/lib/leadPolicy";
+import { monthRangeUTC } from "@/lib/dateOnly";
 import { Sucursal } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
@@ -15,6 +16,7 @@ export async function GET(req: NextRequest) {
   const month = searchParams.get("mes"); // YYYY-MM, filters by fecha (ingreso)
   const estado = searchParams.get("estado");
   const sucursalParam = searchParams.get("sucursal");
+  const orden = searchParams.get("orden") === "asc" ? "asc" : "desc";
 
   const where: Record<string, unknown> = {};
 
@@ -29,17 +31,13 @@ export async function GET(req: NextRequest) {
   if (estado) where.estado = estado;
 
   if (month) {
-    const [year, mon] = month.split("-").map(Number);
-    if (year && mon) {
-      const start = new Date(year, mon - 1, 1);
-      const end = new Date(year, mon, 1);
-      where.fecha = { gte: start, lt: end };
-    }
+    const { start, end } = monthRangeUTC(month);
+    where.fecha = { gte: start, lt: end };
   }
 
   const leads = await prisma.lead.findMany({
     where,
-    orderBy: { fecha: "desc" },
+    orderBy: { fecha: orden },
   });
 
   return NextResponse.json({ leads, count: leads.length });

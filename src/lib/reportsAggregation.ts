@@ -79,12 +79,11 @@ export async function getMonthlyReport(month: string | null, scopeSucursal?: Suc
     : SUCURSALES.map((sucursal) => {
         const ingresadosSucursal = ingresados.filter((l) => l.sucursal === sucursal);
         const ventasSucursal = ventasCerradas.filter((l) => l.sucursal === sucursal);
-        const perdidosSucursal = perdidosCerrados.filter((l) => l.sucursal === sucursal);
         return {
           sucursal,
           total: ingresadosSucursal.length,
           ventas: ventasSucursal.length,
-          tasaConversion: conversionRate(ventasSucursal.length, perdidosSucursal.length),
+          montoVendido: sumMonto(ventasSucursal),
         };
       }).filter((row) => row.total > 0 || row.ventas > 0);
 

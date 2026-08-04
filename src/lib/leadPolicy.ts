@@ -23,7 +23,7 @@ export function isOverdue(
   lead: { estado: Estado; proximoSeguimiento: Date | null; fecha: Date },
   now: Date = new Date()
 ): boolean {
-  if (lead.estado === "VENTA" || lead.estado === "PERDIDO") return false;
+  if (lead.estado === "VENTA" || lead.estado === "PERDIDO" || lead.estado === "NO_RESPONDIO") return false;
   if (lead.proximoSeguimiento) return lead.proximoSeguimiento < now;
   return differenceInCalendarDays(now, lead.fecha) > 2;
 }
