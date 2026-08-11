@@ -38,3 +38,28 @@ export function monthRangeUTC(month: string): { start: Date; end: Date } {
     end: new Date(Date.UTC(year, mon, 1)),
   };
 }
+
+// All branches operate in Mexico Central Time. Mexico abolished nationwide
+// DST in 2022, so this fixed offset holds year-round (revisit if the
+// business ever opens a branch in a different timezone).
+const MEXICO_UTC_OFFSET_HOURS = 6;
+
+/**
+ * "Today" in Mexico's calendar, expressed as a UTC-midnight-anchored Date so
+ * it's directly comparable against date-only fields (fecha, proximoSeguimiento).
+ *
+ * Comparing those fields against a raw `new Date()` instant is wrong: UTC
+ * runs 6h ahead of Mexico, so a proximoSeguimiento set for "today" (stored as
+ * that day's UTC midnight) reads as already-past from ~6pm the previous day
+ * in Mexico onward — every "due today" follow-up would falsely show overdue
+ * for most of the day before it's actually due.
+ */
+export function mexicoTodayAsUTCDate(now: Date = new Date()): Date {
+  const shifted = new Date(now.getTime() - MEXICO_UTC_OFFSET_HOURS * 3_600_000);
+  return new Date(Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate()));
+}
+
+/** UTC-midnight-anchored calendar date for a date-only field's own Y/M/D (drops any time-of-day noise). */
+export function calendarDateUTC(d: Date): Date {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+}

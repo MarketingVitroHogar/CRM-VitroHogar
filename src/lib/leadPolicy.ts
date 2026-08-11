@@ -1,4 +1,3 @@
-import { differenceInCalendarDays } from "date-fns";
 import { Estado, Sucursal } from "@prisma/client";
 import {
   GERENTE_ALLOWED_ESTADOS,
@@ -6,6 +5,7 @@ import {
   RESPONSABLE_COORDINADOR,
   gerenteResponsableLabel,
 } from "./catalogs";
+import { mexicoTodayAsUTCDate, calendarDateUTC } from "./dateOnly";
 
 export function responsableOptionsFor(sucursal: Sucursal): string[] {
   return [RESPONSABLE_CM, RESPONSABLE_COORDINADOR, gerenteResponsableLabel(sucursal)];
@@ -24,8 +24,14 @@ export function isOverdue(
   now: Date = new Date()
 ): boolean {
   if (lead.estado === "VENTA" || lead.estado === "PERDIDO" || lead.estado === "NO_RESPONDIO") return false;
-  if (lead.proximoSeguimiento) return lead.proximoSeguimiento < now;
-  return differenceInCalendarDays(now, lead.fecha) > 2;
+
+  const today = mexicoTodayAsUTCDate(now);
+  if (lead.proximoSeguimiento) return calendarDateUTC(lead.proximoSeguimiento) < today;
+
+  const daysSinceFecha = Math.round(
+    (today.getTime() - calendarDateUTC(lead.fecha).getTime()) / 86_400_000
+  );
+  return daysSinceFecha > 2;
 }
 
 export function resolveFechaCierre(
