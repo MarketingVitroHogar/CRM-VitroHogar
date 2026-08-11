@@ -9,7 +9,12 @@ import {
   ForbiddenError,
 } from "@/lib/permissions";
 import { LeadCoordUpdateSchema, LeadGerenteUpdateSchema } from "@/lib/validation/leadSchemas";
-import { defaultResponsableFor, isValidResponsableFor, resolveFechaCierre } from "@/lib/leadPolicy";
+import {
+  autoProximoSeguimientoIfMissing,
+  defaultResponsableFor,
+  isValidResponsableFor,
+  resolveFechaCierre,
+} from "@/lib/leadPolicy";
 import { Sucursal, Estado } from "@prisma/client";
 
 type Params = { params: Promise<{ id: string }> };
@@ -76,6 +81,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const submittedFechaCierre =
       patch.fechaCierre !== undefined ? (patch.fechaCierre as Date | null) : existing.fechaCierre;
     patch.fechaCierre = resolveFechaCierre(nextEstado, submittedFechaCierre);
+
+    const submittedProximoSeguimiento =
+      patch.proximoSeguimiento !== undefined
+        ? (patch.proximoSeguimiento as Date | null)
+        : existing.proximoSeguimiento;
+    patch.proximoSeguimiento = autoProximoSeguimientoIfMissing(nextEstado, submittedProximoSeguimiento);
 
     if (patch.montoVenta !== undefined) {
       patch.montoVenta = patch.montoVenta == null ? null : String(patch.montoVenta);

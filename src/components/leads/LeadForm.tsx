@@ -49,6 +49,17 @@ function todayDateInputValue(): string {
   return `${y}-${m}-${d}`;
 }
 
+function todayPlusDaysInputValue(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+const ESTADOS_QUE_REQUIEREN_SEGUIMIENTO = ["CONTACTADO", "COTIZACION", "SEGUIMIENTO"];
+
 function defaultValuesFor(
   lead: LeadDTO | undefined,
   gerenteSucursal: Sucursal | null | undefined,
@@ -93,7 +104,7 @@ export function LeadForm({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const { register, handleSubmit, watch, setValue, formState } = useForm<FormValues>({
+  const { register, handleSubmit, watch, setValue, getValues, formState } = useForm<FormValues>({
     defaultValues: defaultValuesFor(lead, gerenteSucursal, role),
   });
 
@@ -117,6 +128,16 @@ export function LeadForm({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [watchedSucursal]);
+
+  // Server enforces this too (never trust a client-side default alone), but
+  // suggesting it live lets the gerente see and adjust the date before
+  // saving, instead of finding out after the fact.
+  useEffect(() => {
+    if (!ESTADOS_QUE_REQUIEREN_SEGUIMIENTO.includes(watchedEstado)) return;
+    if (getValues("proximoSeguimiento")) return;
+    setValue("proximoSeguimiento", todayPlusDaysInputValue(2));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedEstado]);
 
   const showFolioCotizacion = watchedEstado === "COTIZACION";
   const showVentaFields = watchedEstado === "VENTA";

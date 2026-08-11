@@ -4,7 +4,12 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { assertCanCreate, ForbiddenError } from "@/lib/permissions";
 import { LeadCreateSchema } from "@/lib/validation/leadSchemas";
-import { defaultResponsableFor, isValidResponsableFor, resolveFechaCierre } from "@/lib/leadPolicy";
+import {
+  autoProximoSeguimientoIfMissing,
+  defaultResponsableFor,
+  isValidResponsableFor,
+  resolveFechaCierre,
+} from "@/lib/leadPolicy";
 import { monthRangeUTC } from "@/lib/dateOnly";
 import { Sucursal } from "@prisma/client";
 
@@ -68,6 +73,7 @@ export async function POST(req: NextRequest) {
 
     const estado = (data.estado ?? "NUEVO") as "NUEVO" | "CONTACTADO" | "COTIZACION" | "SEGUIMIENTO" | "NO_RESPONDIO" | "VENTA" | "PERDIDO";
     const fechaCierre = resolveFechaCierre(estado, data.fechaCierre ?? null);
+    const proximoSeguimiento = autoProximoSeguimientoIfMissing(estado, data.proximoSeguimiento ?? null);
 
     const lead = await prisma.lead.create({
       data: {
@@ -79,7 +85,7 @@ export async function POST(req: NextRequest) {
         fuente: data.fuente as never,
         estado,
         responsable,
-        proximoSeguimiento: data.proximoSeguimiento ?? null,
+        proximoSeguimiento,
         notas: data.notas ?? "",
         folioCotizacion: data.folioCotizacion ?? null,
         folioFactura: data.folioFactura ?? null,
