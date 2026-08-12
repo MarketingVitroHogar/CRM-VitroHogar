@@ -11,6 +11,7 @@ import {
   FUENTE_LABELS,
   ESTADOS,
   ESTADO_LABELS,
+  asesoresFor,
 } from "@/lib/catalogs";
 import { responsableOptionsFor, defaultResponsableFor } from "@/lib/leadPolicy";
 import type { LeadDTO } from "@/lib/types";
@@ -24,6 +25,7 @@ type FormValues = {
   fuente: string;
   estado: string;
   responsable: string;
+  asesor: string;
   proximoSeguimiento: string;
   notas: string;
   folioCotizacion: string;
@@ -80,6 +82,7 @@ function defaultValuesFor(
     fuente: lead?.fuente ?? FUENTES[0],
     estado,
     responsable: lead?.responsable ?? defaultResponsableFor(sucursal),
+    asesor: lead?.asesor ?? "",
     proximoSeguimiento: toDateInputValue(lead?.proximoSeguimiento ?? null),
     notas: lead?.notas ?? "",
     folioCotizacion: lead?.folioCotizacion ?? "",
@@ -113,10 +116,12 @@ export function LeadForm({
   const watchedSucursal = watch("sucursal");
   const watchedEstado = watch("estado");
   const watchedResponsable = watch("responsable");
+  const watchedAsesor = watch("asesor");
 
   // Responsable options always match the currently-selected sucursal (coord)
   // or the gerente's own fixed sucursal.
   const responsableOptions = responsableOptionsFor(watchedSucursal);
+  const asesorOptions = asesoresFor(watchedSucursal);
 
   // Per spec: if coord changes sucursal, auto-reassign responsable to the new
   // branch's gerente unless the user already picked CM/Coordinador manually,
@@ -125,6 +130,17 @@ export function LeadForm({
     if (!isCoord) return;
     if (!responsableOptions.includes(watchedResponsable)) {
       setValue("responsable", defaultResponsableFor(watchedSucursal));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedSucursal]);
+
+  // Asesores are also sucursal-specific — a name valid at the old branch
+  // isn't necessarily on the new branch's roster, so clear it instead of
+  // carrying over a stale/invalid value (there's no sensible default asesor
+  // to fall back to, unlike responsable).
+  useEffect(() => {
+    if (watchedAsesor && !asesorOptions.includes(watchedAsesor)) {
+      setValue("asesor", "");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [watchedSucursal]);
@@ -150,6 +166,7 @@ export function LeadForm({
     const basePayload: Record<string, unknown> = {
       estado: values.estado,
       responsable: values.responsable,
+      asesor: values.asesor || null,
       proximoSeguimiento: values.proximoSeguimiento || null,
       notas: values.notas,
       folioCotizacion: values.folioCotizacion || null,
@@ -297,6 +314,21 @@ export function LeadForm({
               </option>
             ))}
           </select>
+        </div>
+
+        <div>
+          <label className={labelClass}>Asesor asignado</label>
+          <select className={inputClass} {...register("asesor")}>
+            <option value="">— Sin asignar —</option>
+            {asesorOptions.map((a) => (
+              <option key={a} value={a}>
+                {a}
+              </option>
+            ))}
+          </select>
+          {asesorOptions.length === 0 && (
+            <p className="mt-1 text-xs text-slate-400">Esta sucursal aún no tiene asesores registrados.</p>
+          )}
         </div>
 
         <div>

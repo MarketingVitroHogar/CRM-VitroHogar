@@ -69,6 +69,10 @@ export function LeadCard({
           <dt className="text-xs text-slate-400">Responsable</dt>
           <dd>{lead.responsable}</dd>
         </div>
+        <div>
+          <dt className="text-xs text-slate-400">Asesor asignado</dt>
+          <dd>{lead.asesor || "—"}</dd>
+        </div>
         <div className="col-span-2 sm:col-span-3">
           <dt className="text-xs text-slate-400">Interés</dt>
           <dd>{lead.interes || "—"}</dd>

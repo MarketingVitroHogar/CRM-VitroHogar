@@ -12,6 +12,7 @@ export type LeadDTO = {
   fuente: Fuente;
   estado: Estado;
   responsable: string;
+  asesor: string | null;
   proximoSeguimiento: string | null;
   notas: string;
   folioCotizacion: string | null;

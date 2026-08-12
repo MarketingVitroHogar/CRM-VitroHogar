@@ -71,6 +71,10 @@ model Lead {
   // dynamically against the lead's own sucursal in src/lib/leadPolicy.ts,
   // not as a fixed enum (the valid set of 3 options shifts per branch).
   responsable        String
+  // Vendedor de piso asignado al lead (distinto de "responsable" — ese es
+  // quién le da seguimiento a nivel CRM: CM/Coordinador/Gerente). Catálogo
+  // fijo por sucursal en src/lib/catalogs.ts's ASESORES_POR_SUCURSAL.
+  asesor             String?
   proximoSeguimiento DateTime?
   notas              String    @default("")
   folioCotizacion    String?

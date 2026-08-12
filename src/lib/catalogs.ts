@@ -99,3 +99,30 @@ export function gerenteResponsableLabel(sucursal: Sucursal): string {
 export function gerenteUsername(sucursal: Sucursal): string {
   return `gerente.${sucursal.toLowerCase()}`;
 }
+
+// Roster of asesores (vendedores de piso) por sucursal, distinto de
+// "responsable" (quién da seguimiento a nivel CRM: CM/Coordinador/Gerente).
+// Blvd. Zacatecas no tiene lista todavía — agregar cuando esté disponible.
+export const ASESORES_POR_SUCURSAL: Record<Sucursal, string[]> = {
+  BLVD_ZACATECAS: [],
+  UNIVERSIDAD: ["Ernesto Arturo Frausto Esparza", "Luis Fernando Muñoz Muñoz", "Jose Alfredo Macias Rodriguez"],
+  HACIENDAS: ["Saray Salgado", "Miguel Torres", "Armando Gonzalez"],
+  LOPEZ_MATEOS: ["Jose Andrés Mireles Cornejo", "Hugo Enrique Gonzalez Lara"],
+  AYUNTAMIENTO: ["Jesús Daniel Pérez Rios", "Karla Fabiola Morales Ramírez", "Bricia Thalía Silva Pérez"],
+  PASEO_DE_LA_CRUZ: ["Diana Limon", "David Medellin", "Alejandra Raygoza", "Miriam Cota", "Adrián Perez"],
+  RINCON_DE_ROMOS: [
+    "Ma del Rocío Flores Roa",
+    "Wendoline Calderón Márgenes",
+    "José Armando Suárez Salazar",
+    "José Luis Ureña Ovalle",
+  ],
+  JESUS_MARIA: ["José Ignacio Galván Picón", "Raúl De Jesús De Luna Lugo"],
+  GONZALEZ_GALLO: ["Sara Edelia Oregel Jara", "Yolanda Rios Reyes", "Lucía Adriana Salgado Rodríguez"],
+  JUAN_PABLO: ["Lucio"],
+  GUADALUPE: ["Junior Gamaliel Ramirez Rodriguez", "Mayra Elizabeth Lugo Najar", "Norma Del Carmen Gonzalez Garcia"],
+  TLI: ["Cristian", "Karen", "Estefania"],
+};
+
+export function asesoresFor(sucursal: Sucursal): string[] {
+  return ASESORES_POR_SUCURSAL[sucursal];
+}

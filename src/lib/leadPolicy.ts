@@ -4,6 +4,7 @@ import {
   RESPONSABLE_CM,
   RESPONSABLE_COORDINADOR,
   gerenteResponsableLabel,
+  asesoresFor,
 } from "./catalogs";
 import { mexicoTodayAsUTCDate, calendarDateUTC } from "./dateOnly";
 
@@ -17,6 +18,11 @@ export function defaultResponsableFor(sucursal: Sucursal): string {
 
 export function isValidResponsableFor(sucursal: Sucursal, responsable: string): boolean {
   return responsableOptionsFor(sucursal).includes(responsable);
+}
+
+export function isValidAsesorFor(sucursal: Sucursal, asesor: string | null): boolean {
+  if (asesor === null || asesor === "") return true; // sin asignar siempre es válido
+  return asesoresFor(sucursal).includes(asesor);
 }
 
 export function isOverdue(

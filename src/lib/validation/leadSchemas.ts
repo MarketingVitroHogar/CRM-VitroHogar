@@ -36,6 +36,7 @@ export const LeadCreateSchema = z.object({
   fuente: z.enum(FUENTES as [string, ...string[]]),
   estado: z.enum(ESTADOS as [string, ...string[]]).default("NUEVO"),
   responsable: z.string().trim().optional(),
+  asesor: z.string().trim().nullish(),
   proximoSeguimiento: nullableDateInput,
   notas: z.string().trim().default(""),
   folioCotizacion: z.string().trim().nullish(),
@@ -62,6 +63,7 @@ export const LeadCoordUpdateSchema = z.object({
   fuente: z.enum(FUENTES as [string, ...string[]]).optional(),
   estado: z.enum(ESTADOS as [string, ...string[]]).optional(),
   responsable: z.string().trim().optional(),
+  asesor: z.string().trim().nullish(),
   proximoSeguimiento: nullableDateInput,
   notas: z.string().trim().optional(),
   folioCotizacion: z.string().trim().nullish(),
@@ -77,6 +79,7 @@ export const LeadGerenteUpdateSchema = z
   .object({
     estado: z.enum(GERENTE_ALLOWED_ESTADOS as [string, ...string[]]).optional(),
     responsable: z.string().trim().min(1).optional(),
+    asesor: z.string().trim().nullish(),
     proximoSeguimiento: nullableDateInput,
     notas: z.string().trim().optional(),
     folioCotizacion: z.string().trim().nullish(),

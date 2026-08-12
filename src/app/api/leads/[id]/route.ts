@@ -12,6 +12,7 @@ import { LeadCoordUpdateSchema, LeadGerenteUpdateSchema } from "@/lib/validation
 import {
   autoProximoSeguimientoIfMissing,
   defaultResponsableFor,
+  isValidAsesorFor,
   isValidResponsableFor,
   resolveFechaCierre,
 } from "@/lib/leadPolicy";
@@ -75,6 +76,26 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       // coord changed sucursal without explicitly setting responsable -> auto
       // reassign to the new branch's gerente, per spec.
       patch.responsable = defaultResponsableFor(nextSucursal);
+    }
+
+    if (patch.asesor !== undefined) {
+      const asesorValue = ((patch.asesor as string | null) ?? "").trim() || null;
+      if (!isValidAsesorFor(nextSucursal, asesorValue)) {
+        return NextResponse.json(
+          { error: "asesor inválido para la sucursal del lead" },
+          { status: 400 }
+        );
+      }
+      patch.asesor = asesorValue;
+    } else if (
+      patch.sucursal !== undefined &&
+      patch.sucursal !== existing.sucursal &&
+      existing.asesor &&
+      !isValidAsesorFor(nextSucursal, existing.asesor)
+    ) {
+      // coord moved the lead to a different branch — the old asesor doesn't
+      // work there, so clear it rather than leave a stale/invalid name.
+      patch.asesor = null;
     }
 
     const nextEstado = (patch.estado as Estado | undefined) ?? existing.estado;

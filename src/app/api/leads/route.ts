@@ -7,6 +7,7 @@ import { LeadCreateSchema } from "@/lib/validation/leadSchemas";
 import {
   autoProximoSeguimientoIfMissing,
   defaultResponsableFor,
+  isValidAsesorFor,
   isValidResponsableFor,
   resolveFechaCierre,
 } from "@/lib/leadPolicy";
@@ -71,6 +72,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const asesor = data.asesor?.trim() || null;
+    if (!isValidAsesorFor(sucursal, asesor)) {
+      return NextResponse.json(
+        { error: "asesor inválido para la sucursal seleccionada" },
+        { status: 400 }
+      );
+    }
+
     const estado = (data.estado ?? "NUEVO") as "NUEVO" | "CONTACTADO" | "COTIZACION" | "SEGUIMIENTO" | "NO_RESPONDIO" | "VENTA" | "PERDIDO";
     const fechaCierre = resolveFechaCierre(estado, data.fechaCierre ?? null);
     const proximoSeguimiento = autoProximoSeguimientoIfMissing(estado, data.proximoSeguimiento ?? null);
@@ -85,6 +94,7 @@ export async function POST(req: NextRequest) {
         fuente: data.fuente as never,
         estado,
         responsable,
+        asesor,
         proximoSeguimiento,
         notas: data.notas ?? "",
         folioCotizacion: data.folioCotizacion ?? null,

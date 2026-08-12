@@ -40,6 +40,7 @@ export function assertCanImport(user: SessionUser) {
 const GERENTE_EDITABLE_FIELDS = [
   "estado",
   "responsable",
+  "asesor",
   "proximoSeguimiento",
   "notas",
   "folioCotizacion",
