@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from "react";
 import type { Role } from "@prisma/client";
-import { MonthPicker } from "./MonthPicker";
+import { DateRangePicker, defaultDateRange, type DateRangeValue } from "./DateRangePicker";
 import { MetricCard } from "./MetricCard";
 import { CanalBreakdownTable, type CanalRow } from "./CanalBreakdownTable";
 import { SucursalBreakdownTable, type SucursalRow } from "./SucursalBreakdownTable";
 
 type ReportData = {
-  months: string[];
   metrics: {
     totalLeads: number;
     leadsEnProceso: number;
@@ -23,7 +22,7 @@ type ReportData = {
 };
 
 export function ReportsView({ role }: { role: Role }) {
-  const [month, setMonth] = useState("");
+  const [range, setRange] = useState<DateRangeValue>(() => defaultDateRange());
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -33,7 +32,10 @@ export function ReportsView({ role }: { role: Role }) {
     async function fetchReport() {
       setLoading(true);
       const params = new URLSearchParams();
-      if (month) params.set("mes", month);
+      if (range) {
+        params.set("from", range.from);
+        params.set("to", range.to);
+      }
       const res = await fetch(`/api/reports?${params.toString()}`);
       if (res.ok) {
         const body = await res.json();
@@ -46,7 +48,7 @@ export function ReportsView({ role }: { role: Role }) {
     return () => {
       ignore = true;
     };
-  }, [month]);
+  }, [range]);
 
   if (loading && !data) {
     return <p className="text-sm text-slate-500">Cargando…</p>;
@@ -59,7 +61,7 @@ export function ReportsView({ role }: { role: Role }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <MonthPicker months={data.months} value={month} onChange={setMonth} />
+      <DateRangePicker value={range} onChange={setRange} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         <MetricCard label="Leads totales" value={String(metrics.totalLeads)} hint="por fecha de ingreso" />

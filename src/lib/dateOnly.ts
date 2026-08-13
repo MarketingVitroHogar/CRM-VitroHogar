@@ -63,3 +63,13 @@ export function mexicoTodayAsUTCDate(now: Date = new Date()): Date {
 export function calendarDateUTC(d: Date): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 }
+
+/** [start, end) UTC range for an inclusive "YYYY-MM-DD" from/to pair (e.g. a report date-range filter). */
+export function dayRangeUTC(from: string, to: string): { start: Date; end: Date } {
+  const [fy, fm, fd] = from.split("-").map(Number);
+  const [ty, tm, td] = to.split("-").map(Number);
+  return {
+    start: new Date(Date.UTC(fy, fm - 1, fd)),
+    end: new Date(Date.UTC(ty, tm - 1, td) + 86_400_000), // day after `to`, exclusive upper bound
+  };
+}

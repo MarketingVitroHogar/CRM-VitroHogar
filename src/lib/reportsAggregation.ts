@@ -2,22 +2,6 @@ import type { Lead, Sucursal } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isOverdue, round2 } from "@/lib/leadPolicy";
 import { FUENTES, SUCURSALES } from "@/lib/catalogs";
-import { monthKeyUTC as monthKey, monthRangeUTC as monthRange } from "@/lib/dateOnly";
-
-export async function getAvailableMonths(scopeSucursal?: Sucursal | null): Promise<string[]> {
-  const where = scopeSucursal ? { sucursal: scopeSucursal } : {};
-  const leads = await prisma.lead.findMany({
-    where,
-    select: { fecha: true, fechaCierre: true },
-  });
-
-  const months = new Set<string>();
-  for (const lead of leads) {
-    months.add(monthKey(lead.fecha));
-    if (lead.fechaCierre) months.add(monthKey(lead.fechaCierre));
-  }
-  return [...months].sort().reverse();
-}
 
 function sumMonto(rows: Lead[]): number {
   return round2(rows.reduce((sum, r) => sum + (r.montoVenta != null ? Number(r.montoVenta) : 0), 0));
@@ -28,14 +12,17 @@ function conversionRate(ventas: number, perdidos: number): number {
   return denom === 0 ? 0 : round2((ventas / denom) * 100);
 }
 
-export async function getMonthlyReport(month: string | null, scopeSucursal?: Sucursal | null) {
+export async function getReport(
+  range: { start: Date; end: Date } | null,
+  scopeSucursal?: Sucursal | null
+) {
   const baseWhere = scopeSucursal ? { sucursal: scopeSucursal } : {};
 
   let ingresados: Lead[];
   let cerrados: Lead[];
 
-  if (month) {
-    const { start, end } = monthRange(month);
+  if (range) {
+    const { start, end } = range;
     [ingresados, cerrados] = await Promise.all([
       prisma.lead.findMany({ where: { ...baseWhere, fecha: { gte: start, lt: end } } }),
       prisma.lead.findMany({ where: { ...baseWhere, fechaCierre: { gte: start, lt: end } } }),
