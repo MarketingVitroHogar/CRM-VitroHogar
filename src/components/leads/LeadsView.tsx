@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { Role } from "@prisma/client";
 import { LeadFilters, type LeadFilterState } from "./LeadFilters";
+import { LeadSearchBox } from "./LeadSearchBox";
 import { LeadCard } from "./LeadCard";
 import type { LeadDTO } from "@/lib/types";
 
@@ -20,6 +21,7 @@ export function LeadsView({ role }: { role: Role }) {
     sucursal: "",
     estado: "",
     orden: "desc",
+    q: "",
   });
   const [leads, setLeads] = useState<LeadDTO[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +35,11 @@ export function LeadsView({ role }: { role: Role }) {
       setLoading(true);
       setError(null);
       const params = new URLSearchParams();
-      if (filters.mes) params.set("mes", filters.mes);
+      if (filters.q) {
+        params.set("q", filters.q);
+      } else if (filters.mes) {
+        params.set("mes", filters.mes);
+      }
       if (filters.estado) params.set("estado", filters.estado);
       if (role === "coord" && filters.sucursal) params.set("sucursal", filters.sucursal);
       params.set("orden", filters.orden);
@@ -76,7 +82,7 @@ export function LeadsView({ role }: { role: Role }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <LeadFilters value={filters} onChange={setFilters} showSucursal={role === "coord"} />
+        <LeadSearchBox value={filters.q} onSearch={(q) => setFilters((prev) => ({ ...prev, q }))} />
         {role === "coord" && (
           <Link
             href="/leads/new"
@@ -86,6 +92,13 @@ export function LeadsView({ role }: { role: Role }) {
           </Link>
         )}
       </div>
+
+      <LeadFilters value={filters} onChange={setFilters} showSucursal={role === "coord"} />
+      {filters.q && (
+        <p className="-mt-2 text-xs text-slate-400">
+          Buscando &quot;{filters.q}&quot; en todos los meses — el filtro de mes no aplica mientras hay una búsqueda activa.
+        </p>
+      )}
 
       <p className="text-sm text-slate-500">
         {loading ? "Cargando…" : `${leads.length} lead${leads.length === 1 ? "" : "s"} encontrado${leads.length === 1 ? "" : "s"}`}

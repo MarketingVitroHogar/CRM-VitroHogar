@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
   const estado = searchParams.get("estado");
   const sucursalParam = searchParams.get("sucursal");
   const orden = searchParams.get("orden") === "asc" ? "asc" : "desc";
+  const q = searchParams.get("q")?.trim();
 
   const where: Record<string, unknown> = {};
 
@@ -36,7 +37,15 @@ export async function GET(req: NextRequest) {
 
   if (estado) where.estado = estado;
 
-  if (month) {
+  // A search query intentionally ignores the mes filter — looking up a
+  // specific customer by name/phone shouldn't require first guessing which
+  // month they came in.
+  if (q) {
+    where.OR = [
+      { nombre: { contains: q, mode: "insensitive" } },
+      { telefono: { contains: q } },
+    ];
+  } else if (month) {
     const { start, end } = monthRangeUTC(month);
     where.fecha = { gte: start, lt: end };
   }

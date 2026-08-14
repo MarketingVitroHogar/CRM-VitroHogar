@@ -7,6 +7,7 @@ export type LeadFilterState = {
   sucursal: string; // "" = todas
   estado: string; // "" = todos
   orden: "desc" | "asc"; // fecha: más reciente primero | más antigua primero
+  q: string; // búsqueda por nombre o teléfono — ignora el filtro de mes cuando está activa
 };
 
 // El filtro de estado en la lista de leads no incluye "Perdido" — sigue
