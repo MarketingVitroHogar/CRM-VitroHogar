@@ -25,19 +25,25 @@ export function isValidAsesorFor(sucursal: Sucursal, asesor: string | null): boo
   return asesoresFor(sucursal).includes(asesor);
 }
 
+// "Sin seguimiento a tiempo" only ever applies to leads still in "Nuevo" —
+// the moment a lead is touched (Contactado, Cotización, Venta, Perdido,
+// whatever), this alert stops applying to it entirely, regardless of any
+// próximo seguimiento date on record. Once it's no longer "Nuevo", the
+// gerente has already engaged with it; if a scheduled próximo seguimiento
+// there later slips, that's tracked by the field itself, not this alert.
 export function isOverdue(
-  lead: { estado: Estado; proximoSeguimiento: Date | null; fecha: Date },
+  lead: { estado: Estado; proximoSeguimiento: Date | null; createdAt: Date },
   now: Date = new Date()
 ): boolean {
-  if (lead.estado === "VENTA" || lead.estado === "PERDIDO" || lead.estado === "NO_RESPONDIO") return false;
+  if (lead.estado !== "NUEVO") return false;
 
-  const today = mexicoTodayAsUTCDate(now);
-  if (lead.proximoSeguimiento) return calendarDateUTC(lead.proximoSeguimiento) < today;
+  if (lead.proximoSeguimiento) {
+    const today = mexicoTodayAsUTCDate(now);
+    return calendarDateUTC(lead.proximoSeguimiento) < today;
+  }
 
-  const daysSinceFecha = Math.round(
-    (today.getTime() - calendarDateUTC(lead.fecha).getTime()) / 86_400_000
-  );
-  return daysSinceFecha > 2;
+  const hoursSinceCreated = (now.getTime() - lead.createdAt.getTime()) / 3_600_000;
+  return hoursSinceCreated > 24;
 }
 
 export function resolveFechaCierre(

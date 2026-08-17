@@ -26,7 +26,7 @@ export function LeadCard({
     {
       estado: lead.estado,
       proximoSeguimiento: lead.proximoSeguimiento ? new Date(lead.proximoSeguimiento) : null,
-      fecha: new Date(lead.fecha),
+      createdAt: new Date(lead.createdAt),
     },
     new Date()
   );
