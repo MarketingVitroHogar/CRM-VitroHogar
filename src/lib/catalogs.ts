@@ -102,9 +102,17 @@ export function gerenteUsername(sucursal: Sucursal): string {
 
 // Roster of asesores (vendedores de piso) por sucursal, distinto de
 // "responsable" (quién da seguimiento a nivel CRM: CM/Coordinador/Gerente).
-// Blvd. Zacatecas no tiene lista todavía — agregar cuando esté disponible.
 export const ASESORES_POR_SUCURSAL: Record<Sucursal, string[]> = {
-  BLVD_ZACATECAS: [],
+  BLVD_ZACATECAS: [
+    "Genaro Samuel Alvarado Melesio",
+    "Raul Esparza Gonzalez",
+    "Jose Andres Hernandez Romero",
+    "Yuridia Marlenne Moreno Cruz",
+    "Karen Arely Ortega Hernandez",
+    "Juan Angel Ramirez Salazar",
+    "Adriana Rodriguez Mora",
+    "Edgar Daniel Contreras Morales",
+  ],
   UNIVERSIDAD: ["Ernesto Arturo Frausto Esparza", "Luis Fernando Muñoz Muñoz", "Jose Alfredo Macias Rodriguez"],
   HACIENDAS: ["Saray Salgado", "Miguel Torres", "Armando Gonzalez"],
   LOPEZ_MATEOS: ["Jose Andrés Mireles Cornejo", "Hugo Enrique Gonzalez Lara"],
