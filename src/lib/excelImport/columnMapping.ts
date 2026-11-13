@@ -89,6 +89,7 @@ const SUCURSAL_ALIASES: Record<Sucursal, string[]> = {
   GONZALEZ_GALLO: ["gonzalez gallo", "gonzález gallo"],
   JUAN_PABLO: ["juan pablo"],
   GUADALUPE: ["guadalupe"],
+  COLON: ["colon", "colón"],
   TLI: ["tli", "tienda en linea", "tienda en línea", "tienda online", "en linea", "online"],
 };
 

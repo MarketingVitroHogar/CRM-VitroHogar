@@ -12,6 +12,7 @@ export const SUCURSALES: Sucursal[] = [
   "GONZALEZ_GALLO",
   "JUAN_PABLO",
   "GUADALUPE",
+  "COLON",
   "TLI",
 ];
 
@@ -27,6 +28,7 @@ export const SUCURSAL_LABELS: Record<Sucursal, string> = {
   GONZALEZ_GALLO: "González Gallo",
   JUAN_PABLO: "Juan Pablo",
   GUADALUPE: "Guadalupe",
+  COLON: "Colón",
   TLI: "TLI (Tienda en línea)",
 };
 
@@ -128,6 +130,7 @@ export const ASESORES_POR_SUCURSAL: Record<Sucursal, string[]> = {
   GONZALEZ_GALLO: ["Sara Edelia Oregel Jara", "Yolanda Rios Reyes", "Lucía Adriana Salgado Rodríguez"],
   JUAN_PABLO: ["Lucio"],
   GUADALUPE: ["Junior Gamaliel Ramirez Rodriguez", "Mayra Elizabeth Lugo Najar", "Norma Del Carmen Gonzalez Garcia"],
+  COLON: [], // pendiente: lista de asesores de Colón
   TLI: ["Cristian", "Karen", "Estefania"],
 };
 

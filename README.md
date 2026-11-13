@@ -1,6 +1,6 @@
 # Vitro Hogar — CRM de seguimiento de leads
 
-CRM interno para registrar, dar seguimiento y reportar leads de las 11 sucursales físicas y la tienda en línea (TLI) de Vitro Hogar.
+CRM interno para registrar, dar seguimiento y reportar leads de las 12 sucursales físicas (incluida Colón) y la tienda en línea (TLI) de Vitro Hogar.
 
 Stack: Next.js (App Router) + TypeScript + Prisma + NextAuth (Credentials/JWT) + Tailwind CSS. Base de datos SQLite en desarrollo, lista para migrar a Postgres en producción.
 
@@ -30,7 +30,7 @@ Stack: Next.js (App Router) + TypeScript + Prisma + NextAuth (Credentials/JWT) +
    npx prisma migrate dev --name init
    ```
 
-4. Sembrar los usuarios iniciales (1 Coordinador/CM + 1 Gerente por sucursal, 13 cuentas en total):
+4. Sembrar los usuarios iniciales (1 Coordinador/CM + 1 Gerente por sucursal, 14 cuentas en total):
 
    ```bash
    npx prisma db seed
@@ -39,7 +39,7 @@ Stack: Next.js (App Router) + TypeScript + Prisma + NextAuth (Credentials/JWT) +
    Todas las cuentas comparten la misma contraseña inicial (`SEED_DEFAULT_PASSWORD` en `.env`, por defecto `ChangeMe123!`). Los usuarios generados son:
 
    - `coord` — Coordinador / Community Manager (acceso completo a todas las sucursales)
-   - `gerente.blvd_zacatecas`, `gerente.universidad`, `gerente.haciendas`, `gerente.lopez_mateos`, `gerente.ayuntamiento`, `gerente.paseo_de_la_cruz`, `gerente.rincon_de_romos`, `gerente.jesus_maria`, `gerente.gonzalez_gallo`, `gerente.juan_pablo`, `gerente.guadalupe`, `gerente.tli` — un Gerente por sucursal, limitado a los leads de su propia sucursal
+   - `gerente.blvd_zacatecas`, `gerente.universidad`, `gerente.haciendas`, `gerente.lopez_mateos`, `gerente.ayuntamiento`, `gerente.paseo_de_la_cruz`, `gerente.rincon_de_romos`, `gerente.jesus_maria`, `gerente.gonzalez_gallo`, `gerente.juan_pablo`, `gerente.guadalupe`, `gerente.colon`, `gerente.tli` — un Gerente por sucursal, limitado a los leads de su propia sucursal
 
    No hay pantalla de gestión de usuarios en esta versión: para cambiar contraseñas o agregar cuentas se vuelve a correr el seed (es idempotente) o se edita directamente la base de datos.
 

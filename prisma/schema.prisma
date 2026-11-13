@@ -24,6 +24,7 @@ enum Sucursal {
   GONZALEZ_GALLO
   JUAN_PABLO
   GUADALUPE
+  COLON
   TLI
 }
 
