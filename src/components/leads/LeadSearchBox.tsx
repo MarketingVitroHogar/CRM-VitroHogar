@@ -27,13 +27,13 @@ export function LeadSearchBox({
             if (e.key === "Enter") submit();
           }}
           placeholder="Ej. Juan Pérez o 449..."
-          className="w-56 rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-slate-500 focus:outline-none"
+          className="w-56 rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
         />
       </div>
       <button
         type="button"
         onClick={submit}
-        className="rounded-md bg-slate-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-slate-700"
+        className="rounded-md bg-brand px-4 py-1.5 text-sm font-medium text-white hover:bg-brand-dark"
       >
         Buscar
       </button>

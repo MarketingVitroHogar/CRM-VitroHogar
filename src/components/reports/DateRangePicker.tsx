@@ -154,7 +154,7 @@ export function DateRangePicker({
           <button
             type="button"
             onClick={() => onChange({ from: customFrom, to: customTo })}
-            className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700"
+            className="rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-dark"
           >
             Aplicar
           </button>

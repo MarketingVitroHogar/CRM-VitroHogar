@@ -217,7 +217,7 @@ export function LeadForm({
   }
 
   const inputClass =
-    "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500";
+    "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:bg-slate-100 disabled:text-slate-500";
   const labelClass = "mb-1 block text-sm font-medium text-slate-700";
 
   return (
@@ -382,7 +382,7 @@ export function LeadForm({
         <button
           type="submit"
           disabled={submitting || formState.isSubmitting}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-60"
+          className="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-60"
         >
           {submitting ? "Guardando…" : "Guardar"}
         </button>

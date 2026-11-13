@@ -7,9 +7,15 @@
  * override here without also re-theming every component; a partial override
  * previously caused white text on white backgrounds for anyone in dark mode.
  */
+/* Colores institucionales — tomados directamente del logo de Vitro Hogar. */
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #231f20; /* gris casi negro del logo ("Pisos • Azulejos • Baños") */
+}
+
+@theme {
+  --color-brand: #d60f27; /* rojo del logo */
+  --color-brand-dark: #b00c20; /* hover/pressed */
 }
 
 @theme inline {

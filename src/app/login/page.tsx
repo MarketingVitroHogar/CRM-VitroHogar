@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
@@ -35,9 +36,16 @@ export default function LoginPage() {
 
   return (
     <div className="flex flex-1 items-center justify-center bg-slate-50 px-4 py-12">
-      <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
-        <h1 className="mb-1 text-2xl font-semibold text-slate-900">Vitro Hogar</h1>
-        <p className="mb-6 text-sm text-slate-500">CRM de seguimiento de leads</p>
+      <div className="w-full max-w-sm rounded-xl border border-slate-200 border-t-4 border-t-brand bg-white p-8 shadow-sm">
+        <Image
+          src="/logo-vitrohogar.png"
+          alt="Vitro Hogar — Pisos, Azulejos, Baños"
+          width={900}
+          height={176}
+          priority
+          className="mx-auto mb-3 h-auto w-64 max-w-full"
+        />
+        <h1 className="mb-6 text-center text-sm font-medium text-slate-500">CRM de seguimiento de leads</h1>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
@@ -51,7 +59,7 @@ export default function LoginPage() {
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             />
           </div>
 
@@ -66,7 +74,7 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             />
           </div>
 
@@ -75,7 +83,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-2 w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:opacity-60"
+            className="mt-2 w-full rounded-md bg-brand px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-dark disabled:opacity-60"
           >
             {loading ? "Entrando..." : "Entrar"}
           </button>
