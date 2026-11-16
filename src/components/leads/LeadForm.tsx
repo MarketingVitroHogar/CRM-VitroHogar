@@ -267,7 +267,7 @@ export function LeadForm({
         <div>
           <label className={labelClass}>Fuente</label>
           <select className={inputClass} disabled={!canEditCoreFields} {...register("fuente")}>
-            {FUENTES.map((f) => (
+            {(lead && !FUENTES.includes(lead.fuente) ? [...FUENTES, lead.fuente] : FUENTES).map((f) => (
               <option key={f} value={f}>
                 {FUENTE_LABELS[f]}
               </option>

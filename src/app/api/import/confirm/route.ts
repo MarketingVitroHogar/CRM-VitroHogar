@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { assertCanImport, ForbiddenError } from "@/lib/permissions";
-import { SUCURSALES, FUENTES } from "@/lib/catalogs";
+import { SUCURSALES, FUENTES_TODAS } from "@/lib/catalogs";
 import { defaultResponsableFor } from "@/lib/leadPolicy";
 import type { Sucursal, Fuente } from "@prisma/client";
 
@@ -13,7 +13,7 @@ const ImportRowSchema = z.object({
   nombre: z.string().trim().min(1),
   telefono: z.string().trim().optional().default(""),
   interes: z.string().trim().optional().default(""),
-  fuente: z.enum(FUENTES as [string, ...string[]]),
+  fuente: z.enum(FUENTES_TODAS as [string, ...string[]]), // la importación puede traer datos históricos
   sucursal: z.enum(SUCURSALES as [string, ...string[]]),
 });
 

@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Estado, Role, Sucursal } from "@prisma/client";
+import type { Role, Sucursal } from "@prisma/client";
 import { PeriodoFilter } from "@/components/ui/PeriodoFilter";
-import { PERIODO_POR_DEFECTO, rangoDe, textoRango, type PeriodoState } from "@/lib/periodos";
-import { ESTADO_LABELS, SUCURSAL_LABELS } from "@/lib/catalogs";
+import { PERIODO_POR_DEFECTO, rangoDe, type PeriodoState } from "@/lib/periodos";
+import { SUCURSAL_LABELS } from "@/lib/catalogs";
 import { MetricCard } from "./MetricCard";
 import { CanalBreakdownTable, type CanalRow } from "./CanalBreakdownTable";
 import { SucursalBreakdownTable, type SucursalRow } from "./SucursalBreakdownTable";
@@ -28,18 +28,8 @@ type ReportData = {
   porCanal: CanalRow[];
   porSucursal: SucursalRow[];
   porAsesor: { asesor: string; sucursal: Sucursal; leads: number; ventas: number; monto: number; conversion: number }[];
-  embudo: { estado: Estado; total: number }[];
+  embudo: { key: string; label: string; dot: string; total: number }[];
   tendencia: { granularidad: "dia" | "semana" | "mes"; puntos: { key: string; label: string; leads: number; ventas: number; monto: number }[] };
-};
-
-const ESTADO_COLOR: Record<Estado, string> = {
-  NUEVO: "bg-slate-400",
-  CONTACTADO: "bg-blue-500",
-  COTIZACION: "bg-amber-500",
-  SEGUIMIENTO: "bg-purple-500",
-  NO_RESPONDIO: "bg-orange-500",
-  VENTA: "bg-green-500",
-  PERDIDO: "bg-red-500",
 };
 
 const money = (n: number) => "$" + Math.round(n).toLocaleString("es-MX");
@@ -62,9 +52,6 @@ export function ReportsView({ role }: { role: Role }) {
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-
-  const range = rangoDe(periodo); // se calcula al pedir: "Hoy" siempre es el día actual
-  const exportQs = range ? `?from=${range.from}&to=${range.to}` : "";
 
   useEffect(() => {
     let ignore = false;
@@ -102,32 +89,7 @@ export function ReportsView({ role }: { role: Role }) {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Solo al imprimir: título con el periodo */}
-      <div className="hidden print:block">
-        <h1 className="text-lg font-semibold text-slate-900">Reporte CRM Vitro Hogar</h1>
-        <p className="text-sm text-slate-600">
-          Periodo: {textoRango(range)} · {role === "coord" ? "Todas las sucursales" : "Mi sucursal"}
-        </p>
-      </div>
-
-      <div className="flex flex-wrap items-end justify-between gap-3 print:hidden">
-        <PeriodoFilter value={periodo} onChange={setPeriodo} />
-        <div className="flex flex-wrap items-center gap-2">
-          <a
-            href={`/api/reports/export${exportQs}`}
-            className="inline-flex min-h-10 items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            <span aria-hidden>⬇</span> Exportar a Excel
-          </a>
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="inline-flex min-h-10 items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            <span aria-hidden>🖨</span> Imprimir / PDF
-          </button>
-        </div>
-      </div>
+      <PeriodoFilter value={periodo} onChange={setPeriodo} />
 
       {error && <p className="text-sm text-red-600">No se pudo cargar el reporte. Intenta de nuevo.</p>}
       {loading && !data && <Skeleton />}
@@ -161,7 +123,7 @@ export function ReportsView({ role }: { role: Role }) {
           <div className="grid gap-6 lg:grid-cols-2">
             <section className="min-w-0 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
               <h2 className="mb-3 text-sm font-semibold text-slate-700">Embudo: leads por estado</h2>
-              <BarrasH filas={data.embudo.map((e) => ({ label: ESTADO_LABELS[e.estado], valor: e.total, colorClase: ESTADO_COLOR[e.estado] }))} />
+              <BarrasH filas={data.embudo.map((e) => ({ label: e.label, valor: e.total, colorClase: e.dot }))} />
             </section>
             <section className="min-w-0">
               <h2 className="mb-2 text-sm font-semibold text-slate-700">Leads por canal</h2>

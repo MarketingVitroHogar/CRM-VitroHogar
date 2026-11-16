@@ -107,9 +107,9 @@ Pruebas: con servidor y base locales de prueba, `node scripts/verify-busqueda.mj
 - **Comparación con el periodo anterior** de la misma duración (▲/▼ en cada indicador; en "Sin seguimiento a tiempo" bajar es lo bueno). Con "Todo el tiempo" no se compara.
 - **Ticket promedio** (total vendido ÷ ventas).
 - **Gráfica de leads y ventas** por día (hasta ~35 días), por semana o por mes según el periodo. Leads por fecha de ingreso; ventas por fecha de cierre.
-- **Embudo** con los 7 estados del CRM y **canales** con los 7 canales de llegada (Facebook, Instagram, TikTok, WhatsApp, Sitio web, Referido y Otro): siempre salen todos, aunque estén en cero.
+- **Canales de llegada** (los mismos con los que se carga un lead): Facebook, WhatsApp, Instagram, TikTok y Tienda en línea (antes "Sitio web"). Los 5 salen siempre, aunque estén en cero. "Referido" y "Otro" ya no se pueden elegir; si hay leads antiguos con esos valores salen como "(histórico)" para que el total cuadre.
+- **Embudo con 5 estados**: Nuevo, Contactado (incluye "No respondió"), Cotización (incluye "Seguimiento"), Venta y Perdido. "Cotizaciones" cuenta Cotización + Seguimiento.
 - **Desempeño por asesor** (leads, ventas, monto y conversión); el gerente solo ve los de su sucursal.
-- **Exportar a Excel** (`GET /api/reports/export?from=&to=`: hojas Resumen, Tendencia, Por canal, Por sucursal, Por asesor y Embudo) e **Imprimir / PDF**.
 - Conversión = ventas ÷ (ventas + perdidos) cerrados en el periodo (sin cambios).
 
 Pruebas: con servidor y base locales de prueba, `node scripts/verify-reportes.mjs`.

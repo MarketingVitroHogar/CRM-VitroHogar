@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SUCURSALES, FUENTES, ESTADOS, GERENTE_ALLOWED_ESTADOS } from "@/lib/catalogs";
+import { SUCURSALES, FUENTES, FUENTES_TODAS, ESTADOS, GERENTE_ALLOWED_ESTADOS } from "@/lib/catalogs";
 
 // Plain "YYYY-MM-DD" strings (from <input type="date"> and Excel imports)
 // are calendar dates, not instants. `new Date("2026-07-28")` parses that as
@@ -33,7 +33,7 @@ export const LeadCreateSchema = z.object({
   telefono: z.string().trim().min(1, "Teléfono requerido"),
   sucursal: z.enum(SUCURSALES as [string, ...string[]]),
   interes: z.string().trim().default(""),
-  fuente: z.enum(FUENTES as [string, ...string[]]),
+  fuente: z.enum(FUENTES as [string, ...string[]], { error: "Canal inválido: elige Facebook, WhatsApp, Instagram, TikTok o Tienda en línea" }),
   estado: z.enum(ESTADOS as [string, ...string[]]).default("NUEVO"),
   responsable: z.string().trim().optional(),
   asesor: z.string().trim().nullish(),
@@ -60,7 +60,8 @@ export const LeadCoordUpdateSchema = z.object({
   telefono: z.string().trim().min(1).optional(),
   sucursal: z.enum(SUCURSALES as [string, ...string[]]).optional(),
   interes: z.string().trim().optional(),
-  fuente: z.enum(FUENTES as [string, ...string[]]).optional(),
+  // Al editar se aceptan también los valores históricos (Referido / Otro) para no romper leads antiguos.
+  fuente: z.enum(FUENTES_TODAS as [string, ...string[]]).optional(),
   estado: z.enum(ESTADOS as [string, ...string[]]).optional(),
   responsable: z.string().trim().optional(),
   asesor: z.string().trim().nullish(),

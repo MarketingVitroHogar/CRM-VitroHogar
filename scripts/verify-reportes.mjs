@@ -1,10 +1,9 @@
-// Pruebas de los Reportes (comparativo, tendencia, embudo, canales, asesores, ticket promedio y Excel)
+// Pruebas de los Reportes (comparativo, tendencia, embudo de 5 estados, 5 canales, asesores y ticket promedio)
 // contra un servidor LOCAL de prueba.   node scripts/verify-reportes.mjs   (http://localhost:3001)
-import * as XLSX from "xlsx";
-
 const BASE = process.env.BASE_URL ?? "http://localhost:3001";
 if (!/localhost|127\.0\.0\.1/.test(BASE)) throw new Error("Solo se permite contra un servidor local de prueba");
 const PW = "ChangeMe123!";
+const KEY = process.env.INTAKE_API_KEY ?? "clave-de-prueba-local-0123456789abcdef";
 
 class Client {
   jar = new Map();
@@ -23,15 +22,10 @@ class Client {
     this.absorb(res);
     return res;
   }
-  async json(path, method = "GET", body) {
-    const res = await this.raw(path, { method, headers: body ? { "Content-Type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined });
+  async json(path, method = "GET", body, headers = {}) {
+    const res = await this.raw(path, { method, headers: { ...(body ? { "Content-Type": "application/json" } : {}), ...headers }, body: body ? JSON.stringify(body) : undefined });
     let data = null; try { data = await res.json(); } catch {}
     return { status: res.status, body: data };
-  }
-  async xlsx(path) {
-    const res = await this.raw(path);
-    if (res.status !== 200) return { status: res.status, wb: null, res };
-    return { status: 200, wb: XLSX.read(Buffer.from(await res.arrayBuffer())), res };
   }
   async login(username, password) {
     const c = await this.raw("/api/auth/csrf"); const { csrfToken } = await c.json();
@@ -44,7 +38,6 @@ let pass = 0, fail = 0;
 const check = (name, cond, extra = "") => { if (cond) { pass++; console.log("  ✓", name); } else { fail++; console.log("  ✗", name, extra); } };
 const as = async (u) => { const c = new Client(); if (!(await c.login(u, PW)).ok) throw new Error("login " + u); return c; };
 const denied = (st) => st === 401 || st === 307;
-const rows = (wb, name) => XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1 });
 
 const mexNow = new Date(Date.now() - 6 * 3_600_000);
 const iso = (d) => d.toISOString().slice(0, 10);
@@ -52,8 +45,9 @@ const addDays = (s, n) => { const d = new Date(s + "T00:00:00Z"); d.setUTCDate(d
 const HOY = iso(mexNow);
 const D = (n) => addDays(HOY, n);
 const TAG = "REP" + Math.floor(Math.random() * 1e6);
-const CANALES = ["FACEBOOK", "INSTAGRAM", "TIKTOK", "WHATSAPP", "SITIO_WEB", "REFERIDO", "OTRO"];
-const ESTADOS = ["NUEVO", "CONTACTADO", "COTIZACION", "SEGUIMIENTO", "NO_RESPONDIO", "VENTA", "PERDIDO"];
+// Los 5 canales con los que se carga un lead (en este orden de catálogo) y los 5 estados del CRM
+const CANALES = ["FACEBOOK", "WHATSAPP", "INSTAGRAM", "TIKTOK", "SITIO_WEB"];
+const ESTADOS = ["NUEVO", "CONTACTADO", "COTIZACION", "VENTA", "PERDIDO"];
 
 async function main() {
   const coord = await as("coord");
@@ -73,27 +67,28 @@ async function main() {
   const antes = await rep(colon);
   const antesAsesor = (await rep(coord)).porAsesor;
 
-  // Datos de prueba conocidos (todos en Colón, salvo uno de Blvd.)
-  await mk({ fecha: D(-1), fuente: "TIKTOK" });
-  await mk({ fecha: D(-2), fuente: "TIKTOK", estado: "SEGUIMIENTO", proximoSeguimiento: D(3) });
-  await mk({ fecha: D(-3), fuente: "REFERIDO", estado: "COTIZACION" });
+  // Datos de prueba conocidos (Colón, salvo uno de Blvd.)
+  await mk({ fecha: D(-1), fuente: "TIKTOK" }); // Nuevo
+  await mk({ fecha: D(-2), fuente: "TIKTOK", estado: "SEGUIMIENTO", proximoSeguimiento: D(3) }); // Seguimiento → cuenta como Cotización
+  await mk({ fecha: D(-3), fuente: "SITIO_WEB", estado: "COTIZACION" });
   await mk({ fecha: D(-4), fuente: "WHATSAPP", estado: "VENTA", montoVenta: 1000, fechaCierre: D(-2) });
-  await mk({ fecha: D(-5), fuente: "OTRO", estado: "VENTA", montoVenta: 3000, fechaCierre: D(-1) });
+  await mk({ fecha: D(-5), fuente: "INSTAGRAM", estado: "VENTA", montoVenta: 3000, fechaCierre: D(-1) });
   await mk({ fecha: D(-3), fuente: "FACEBOOK", estado: "PERDIDO", fechaCierre: D(-1) });
   await mk({ fecha: D(-10), fuente: "INSTAGRAM" }); // periodo anterior
-  const B1 = await mk({ fecha: D(-1), sucursal: "BLVD_ZACATECAS", asesor: "Genaro Samuel Alvarado Melesio", estado: "VENTA", montoVenta: 500, fechaCierre: D(0) });
+  await mk({ fecha: D(-1), estado: "NO_RESPONDIO", proximoSeguimiento: D(2) }); // No respondió → cuenta como Contactado
+  await mk({ fecha: D(-1), sucursal: "BLVD_ZACATECAS", asesor: "Genaro Samuel Alvarado Melesio", estado: "VENTA", montoVenta: 500, fechaCierre: D(0) });
 
   const despues = await rep(colon);
   const mC = despues.metrics, mA = antes.metrics;
 
   console.log("\n== Comparativo con el periodo anterior ==");
   check("trae el periodo anterior de la misma duración (7 días justo antes)", despues.comparativo && despues.comparativo.desde === D(-13) && despues.comparativo.hasta === D(-7));
-  check("el periodo actual suma los 6 leads de prueba de Colón", mC.totalLeads - mA.totalLeads === 6);
+  check("el periodo actual suma los 7 leads de prueba de Colón", mC.totalLeads - mA.totalLeads === 7);
   check("el periodo anterior suma 1 lead de prueba (el de hace 10 días)", despues.comparativo.metrics.totalLeads - antes.comparativo.metrics.totalLeads === 1);
   check("ventas y total vendido del periodo (2 ventas: $1,000 + $3,000)", mC.ventas - mA.ventas === 2 && mC.totalVendido - mA.totalVendido === 4000);
   check("ticket promedio = total vendido ÷ ventas", mC.ticketPromedio === Math.round((mC.totalVendido / mC.ventas) * 100) / 100);
   check("'todo el tiempo' no compara", (await coord.json("/api/reports")).body.comparativo === null);
-  check("el comparativo incluye las mismas métricas (incluido el ticket)", ["totalLeads", "ventas", "totalVendido", "ticketPromedio", "tasaConversion"].every((k) => typeof despues.comparativo.metrics[k] === "number"));
+  check("'Cotizaciones' cuenta Cotización + Seguimiento (+2)", mC.cotizaciones - mA.cotizaciones === 2);
 
   console.log("\n== Gráfica de tendencia ==");
   check("7 días → un punto por día", despues.tendencia.granularidad === "dia" && despues.tendencia.puntos.length === 7);
@@ -107,20 +102,41 @@ async function main() {
   const todo = (await coord.json("/api/reports")).body;
   check("todo el tiempo → nunca cientos de barras", todo.tendencia.puntos.length <= 90 && todo.tendencia.puntos.reduce((n, p) => n + p.leads, 0) === todo.metrics.totalLeads);
 
-  console.log("\n== Canales de llegada (los del CRM) ==");
-  check("salen los 7 canales: Facebook, Instagram, TikTok, WhatsApp, Sitio web, Referido y Otro", despues.porCanal.length === 7 && CANALES.every((c) => despues.porCanal.some((x) => x.fuente === c)), JSON.stringify(despues.porCanal.map((x) => x.fuente)));
-  const can = (r, c) => r.porCanal.find((x) => x.fuente === c);
-  check("TikTok +2 leads, Referido +1, WhatsApp +1 con su venta de $1,000", can(despues, "TIKTOK").total - can(antes, "TIKTOK").total === 2 && can(despues, "REFERIDO").total - can(antes, "REFERIDO").total === 1 && can(despues, "WHATSAPP").ventas - can(antes, "WHATSAPP").ventas === 1 && can(despues, "WHATSAPP").monto - can(antes, "WHATSAPP").monto === 1000);
-  check("los canales suman los leads del periodo y van ordenados por volumen", despues.porCanal.reduce((n, c) => n + c.total, 0) === mC.totalLeads && despues.porCanal.every((c, i, a) => i === 0 || a[i - 1].total >= c.total));
+  console.log("\n== Canales de llegada (los mismos con los que se carga un lead) ==");
   const vacio = await rep(coord, "from=2020-01-01&to=2020-01-02");
-  check("sin leads en el periodo siguen saliendo los 7 canales (en cero)", vacio.porCanal.length === 7 && vacio.porCanal.every((c) => c.total === 0 && c.porcentaje === 0));
+  check("sin leads en el periodo salen EXACTAMENTE los 5 canales, en cero, en este orden: Facebook, WhatsApp, Instagram, TikTok, Tienda en línea", JSON.stringify(vacio.porCanal.map((c) => c.fuente)) === JSON.stringify(CANALES) && vacio.porCanal.every((c) => c.total === 0 && c.porcentaje === 0));
+  check("con datos, los 5 canales siempre están", CANALES.every((c) => despues.porCanal.some((x) => x.fuente === c)));
+  const extra = todo.porCanal.filter((c) => !CANALES.includes(c.fuente));
+  check("cualquier otro canal es histórico (Referido/Otro) y solo sale si tiene leads", extra.every((c) => ["REFERIDO", "OTRO"].includes(c.fuente) && c.total + c.ventas > 0));
+  check("el total por canal cuadra con los leads del periodo (incluye históricos)", todo.porCanal.reduce((n, c) => n + c.total, 0) === todo.metrics.totalLeads && despues.porCanal.reduce((n, c) => n + c.total, 0) === mC.totalLeads);
+  const can = (r, c) => r.porCanal.find((x) => x.fuente === c);
+  check("TikTok +2, Tienda en línea +1, WhatsApp +1 con su venta de $1,000", can(despues, "TIKTOK").total - can(antes, "TIKTOK").total === 2 && can(despues, "SITIO_WEB").total - can(antes, "SITIO_WEB").total === 1 && can(despues, "WHATSAPP").ventas - can(antes, "WHATSAPP").ventas === 1 && can(despues, "WHATSAPP").monto - can(antes, "WHATSAPP").monto === 1000);
+  check("Instagram: +1 lead del periodo y su venta de $3,000", can(despues, "INSTAGRAM").total - can(antes, "INSTAGRAM").total === 1 && can(despues, "INSTAGRAM").monto - can(antes, "INSTAGRAM").monto === 3000);
+  check("ordenados por volumen", despues.porCanal.every((c, i, a) => i === 0 || a[i - 1].total >= c.total));
 
-  console.log("\n== Embudo (los estados del CRM) ==");
-  check("el embudo trae los 7 estados en su orden", JSON.stringify(despues.embudo.map((e) => e.estado)) === JSON.stringify(ESTADOS));
-  const est = (r, e) => r.embudo.find((x) => x.estado === e).total;
-  check("Seguimiento +1, Cotización +1, Perdido +1, Venta +2, Nuevo +2", est(despues, "SEGUIMIENTO") - est(antes, "SEGUIMIENTO") === 1 && est(despues, "COTIZACION") - est(antes, "COTIZACION") === 1 && est(despues, "PERDIDO") - est(antes, "PERDIDO") === 1 && est(despues, "VENTA") - est(antes, "VENTA") === 2 && est(despues, "NUEVO") - est(antes, "NUEVO") === 1);
-  check("el embudo suma los leads del periodo", despues.embudo.reduce((n, e) => n + e.total, 0) === mC.totalLeads);
-  check("sin leads siguen los 7 estados", vacio.embudo.length === 7);
+  console.log("\n== Los canales al cargar un lead son los mismos ==");
+  for (const f of ["REFERIDO", "OTRO", "GOOGLE_ADS", "SITIO WEB"]) {
+    check(`cargar un lead con canal '${f}' → 400`, (await coord.json("/api/leads", "POST", { nombre: "Canal Invalido", telefono: "4920003333", sucursal: "COLON", interes: TAG, fuente: f, fecha: D(0) })).status === 400);
+  }
+  for (const f of CANALES) {
+    const r = await coord.json("/api/leads", "POST", { nombre: "Canal Valido", telefono: "4920004444", sucursal: "COLON", interes: TAG, fuente: f, fecha: D(0) });
+    check(`cargar un lead con canal ${f} → 201`, r.status === 201);
+    if (r.status === 201) ids.push(r.body.lead.id);
+  }
+  const fi = ids[ids.length - 1];
+  check("editar el canal a otro de los 5 → 200", (await coord.json(`/api/leads/${fi}`, "PATCH", { fuente: "WHATSAPP" })).status === 200);
+  check("la captura automática acepta 'tienda en línea'", (await (async () => { const r = await new Client().json("/api/intake/leads", "POST", { nombre: "Auto Tienda", telefono: "492 555 " + String(1000 + Math.floor(Math.random() * 8999)), sucursal: "COLON", fuente: "tienda en línea" }, { "x-api-key": KEY }); if (r.body?.id) ids.push(r.body.id); return r; })()).status === 201);
+  check("la captura automática rechaza 'referido' y 'otro' → 400", (await new Client().json("/api/intake/leads", "POST", { nombre: "Auto Ref", telefono: "492 555 1111", sucursal: "COLON", fuente: "referido" }, { "x-api-key": KEY })).status === 400 && (await new Client().json("/api/intake/leads", "POST", { nombre: "Auto Otro", telefono: "492 555 2222", sucursal: "COLON", fuente: "otro" }, { "x-api-key": KEY })).status === 400);
+
+  console.log("\n== Embudo (los 5 estados del CRM) ==");
+  check("el embudo trae los 5 estados, en su orden: Nuevo, Contactado, Cotización, Venta, Perdido", JSON.stringify(despues.embudo.map((e) => e.key)) === JSON.stringify(ESTADOS) && JSON.stringify(despues.embudo.map((e) => e.label)) === JSON.stringify(["Nuevo", "Contactado", "Cotización", "Venta", "Perdido"]), JSON.stringify(despues.embudo.map((e) => e.label)));
+  const est = (r, e) => r.embudo.find((x) => x.key === e).total;
+  check("Seguimiento se cuenta dentro de Cotización (+2 = Cotización + Seguimiento)", est(despues, "COTIZACION") - est(antes, "COTIZACION") === 2);
+  check("No respondió se cuenta dentro de Contactado (+1)", est(despues, "CONTACTADO") - est(antes, "CONTACTADO") === 1);
+  check("Nuevo +1, Venta +2, Perdido +1", est(despues, "NUEVO") - est(antes, "NUEVO") === 1 && est(despues, "VENTA") - est(antes, "VENTA") === 2 && est(despues, "PERDIDO") - est(antes, "PERDIDO") === 1);
+  check("el embudo suma los leads del periodo (ninguno se pierde)", despues.embudo.reduce((n, e) => n + e.total, 0) === mC.totalLeads);
+  check("sin leads siguen los 5 estados (en cero)", vacio.embudo.length === 5 && vacio.embudo.every((e) => e.total === 0));
+  check("cada estado trae su color para la barra", despues.embudo.every((e) => /^bg-/.test(e.dot)));
 
   console.log("\n== Desempeño por asesor ==");
   const rc = await rep(coord);
@@ -131,33 +147,18 @@ async function main() {
   check("trae leads, ventas, monto y conversión", rc.porAsesor.every((a) => ["leads", "ventas", "monto", "conversion"].every((k) => typeof a[k] === "number")));
 
   console.log("\n== Alcance por rol ==");
-  check("el gerente de Colón: sin comparativo de sucursales y solo su sucursal por asesor", despues.porSucursal.length === 0 && (await rep(colon)).porAsesor.every((a) => a.sucursal === "COLON"));
+  check("el gerente de Colón: sin comparativo de sucursales y solo su sucursal por asesor", despues.porSucursal.length === 0 && despues.porAsesor.every((a) => a.sucursal === "COLON"));
   check("el gerente de Colón NO ve la venta de Blvd. (Genaro)", !despues.porAsesor.some((a) => a.asesor.startsWith("Genaro")));
   const rb = await rep(blvd);
   check("el gerente de Blvd. Zacatecas sí ve a Genaro y no a asesores de otras sucursales", rb.porAsesor.some((a) => a.asesor.startsWith("Genaro")) && rb.porAsesor.every((a) => a.sucursal === "BLVD_ZACATECAS"));
+  check("el gerente también ve los 5 canales y los 5 estados", rb.porCanal.length >= 5 && rb.embudo.length === 5);
   check("Coordinación ve el comparativo por sucursal", rc.porSucursal.length >= 2);
   check("sin sesión se niega", denied((await new Client().json(`/api/reports?${ACT}`)).status));
 
-  console.log("\n== Exportar el reporte a Excel ==");
-  const x = await coord.xlsx(`/api/reports/export?${ACT}`);
-  check("responde un archivo .xlsx para descargar", x.status === 200 && /spreadsheetml/.test(x.res.headers.get("content-type")) && /attachment; filename="reporte-/.test(x.res.headers.get("content-disposition")));
-  check("hojas: Resumen, Tendencia, Por canal, Por sucursal, Por asesor y Embudo", ["Resumen", "Por canal", "Por sucursal", "Por asesor", "Embudo"].every((n) => x.wb.SheetNames.includes(n)) && x.wb.SheetNames.some((n) => n.startsWith("Tendencia")));
-  const resumen = rows(x.wb, "Resumen");
-  const val = (label) => resumen.find((r) => r[0] === label);
-  check("el Resumen coincide con la pantalla (leads, ventas, total vendido, ticket)", val("Leads totales")[1] === rc.metrics.totalLeads && val("Ventas")[1] === rc.metrics.ventas && val("Total vendido (MXN)")[1] === rc.metrics.totalVendido && val("Ticket promedio (MXN)")[1] === rc.metrics.ticketPromedio);
-  check("el Resumen trae la columna del periodo anterior", String(resumen.find((r) => r[0] === "Métrica")[2]).startsWith("Periodo anterior"));
-  check("'Por canal' trae los 7 canales y 'Embudo' los 7 estados", rows(x.wb, "Por canal").length === 8 && rows(x.wb, "Embudo").length === 8);
-  check("'Por canal' coincide con la pantalla", rows(x.wb, "Por canal").slice(1).reduce((n, r) => n + r[1], 0) === rc.metrics.totalLeads);
-  const xg = await colon.xlsx(`/api/reports/export?${ACT}`);
-  check("el gerente exporta solo su sucursal (sin hoja 'Por sucursal')", xg.status === 200 && !xg.wb.SheetNames.includes("Por sucursal") && rows(xg.wb, "Resumen").some((r) => String(r[1] ?? "").includes("Colón")) && rows(xg.wb, "Resumen").find((r) => r[0] === "Leads totales")[1] === mC.totalLeads);
-  check("exportar 'todo el tiempo' funciona", (await coord.xlsx("/api/reports/export")).status === 200);
-  check("exportar sin sesión se niega", denied((await new Client().raw("/api/reports/export")).status));
-  check("periodo inválido → 400", (await coord.raw("/api/reports/export?from=hoy&to=ayer")).status === 400);
-
-  console.log("\n== Pantalla ==");
-  const page = await coord.raw("/reports");
-  check("la página /reports abre", page.status === 200);
-  check("la página es la de siempre para el gerente", (await colon.raw("/reports")).status === 200);
+  console.log("\n== Sin exportar ni imprimir ==");
+  check("ya no existe la exportación de reportes (404)", (await coord.raw("/api/reports/export")).status === 404);
+  const html = await (await coord.raw("/reports")).text();
+  check("la página de reportes abre y no ofrece 'Exportar' ni 'Imprimir'", html.length > 1000 && !/Exportar a Excel|Imprimir \/ PDF/.test(html));
 
   for (const id of ids) await coord.json(`/api/leads/${id}`, "DELETE");
   console.log(`\nResultado: ${pass} correctas, ${fail} fallidas.`);

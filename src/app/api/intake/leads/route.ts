@@ -3,7 +3,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import type { Fuente, Sucursal } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { SUCURSALES, SUCURSAL_LABELS } from "@/lib/catalogs";
+import { FUENTES, SUCURSALES, SUCURSAL_LABELS } from "@/lib/catalogs";
 import { matchFuente, matchSucursal } from "@/lib/excelImport/columnMapping";
 import { defaultResponsableFor } from "@/lib/leadPolicy";
 import { mexicoTodayAsUTCDate } from "@/lib/dateOnly";
@@ -70,8 +70,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `sucursal no reconocida. Valores válidos: ${SUCURSALES.join(", ")}` }, { status: 400 });
   }
   const fuente = matchFuente(normalizeText(d.fuente)) as Fuente | null;
-  if (!fuente) {
-    return NextResponse.json({ error: "fuente no reconocida. Valores válidos: facebook, instagram, tiktok, whatsapp, sitio web, referido, otro" }, { status: 400 });
+  if (!fuente || !FUENTES.includes(fuente)) {
+    return NextResponse.json({ error: "fuente no reconocida. Valores válidos: facebook, whatsapp, instagram, tiktok, tienda en línea" }, { status: 400 });
   }
 
   // Evita duplicados: mismo teléfono (últimos 10 dígitos) en la misma sucursal en las últimas 2 semanas.

@@ -32,24 +32,20 @@ export const SUCURSAL_LABELS: Record<Sucursal, string> = {
   TLI: "TLI (Tienda en línea)",
 };
 
-export const FUENTES: Fuente[] = [
-  "FACEBOOK",
-  "INSTAGRAM",
-  "TIKTOK",
-  "WHATSAPP",
-  "SITIO_WEB",
-  "REFERIDO",
-  "OTRO",
-];
+/** Canales de llegada que se pueden elegir al cargar un lead (y los que salen en los reportes). */
+export const FUENTES: Fuente[] = ["FACEBOOK", "WHATSAPP", "INSTAGRAM", "TIKTOK", "SITIO_WEB"];
+
+/** Todos los valores válidos en la base: incluye REFERIDO y OTRO, que solo existen en leads históricos. */
+export const FUENTES_TODAS: Fuente[] = [...FUENTES, "REFERIDO", "OTRO"];
 
 export const FUENTE_LABELS: Record<Fuente, string> = {
   FACEBOOK: "Facebook",
   INSTAGRAM: "Instagram",
   TIKTOK: "TikTok",
   WHATSAPP: "WhatsApp",
-  SITIO_WEB: "Sitio web",
-  REFERIDO: "Referido",
-  OTRO: "Otro",
+  SITIO_WEB: "Tienda en línea",
+  REFERIDO: "Referido (histórico)",
+  OTRO: "Otro (histórico)",
 };
 
 export const ESTADOS: Estado[] = [

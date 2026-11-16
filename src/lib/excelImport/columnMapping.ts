@@ -108,7 +108,7 @@ const FUENTE_ALIASES: Record<Fuente, string[]> = {
   INSTAGRAM: ["instagram", "ig", "insta"],
   TIKTOK: ["tiktok", "tt", "tik tok"],
   WHATSAPP: ["whatsapp", "wa", "whats app"],
-  SITIO_WEB: ["sitio web", "web", "pagina web", "página web", "sitio"],
+  SITIO_WEB: ["tienda en linea", "tienda en línea", "tienda", "tli", "sitio web", "web", "pagina web", "página web", "sitio"],
   REFERIDO: ["referido", "referencia"],
   OTRO: ["otro", "otros"],
 };

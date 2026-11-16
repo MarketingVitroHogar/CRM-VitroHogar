@@ -1,7 +1,8 @@
-import type { Estado, Lead, Sucursal } from "@prisma/client";
+import type { Fuente, Lead, Sucursal } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isOverdue, round2 } from "@/lib/leadPolicy";
-import { ESTADOS, FUENTES, SUCURSALES } from "@/lib/catalogs";
+import { FUENTES, FUENTES_TODAS, SUCURSALES } from "@/lib/catalogs";
+import { KANBAN_COLUMNS } from "@/lib/kanban";
 
 type Range = { start: Date; end: Date } | null;
 
@@ -38,7 +39,7 @@ function coreMetrics(ingresados: Lead[], cerrados: Lead[]) {
     metrics: {
       totalLeads: ingresados.length,
       leadsEnProceso: ingresados.filter((l) => l.estado !== "VENTA" && l.estado !== "PERDIDO").length,
-      cotizaciones: ingresados.filter((l) => l.estado === "COTIZACION").length,
+      cotizaciones: ingresados.filter((l) => l.estado === "COTIZACION" || l.estado === "SEGUIMIENTO").length,
       ventas: ventasCerradas.length,
       totalVendido: sumMonto(ventasCerradas),
       ticketPromedio: ventasCerradas.length ? round2(sumMonto(ventasCerradas) / ventasCerradas.length) : 0,
@@ -136,7 +137,10 @@ export async function getReport(range: Range, scopeSucursal?: Sucursal | null) {
     };
   }
 
-  const porCanal = FUENTES.map((fuente) => {
+  // Canales: los 5 con los que se carga un lead salen SIEMPRE (aunque estén en cero). Referido y Otro son valores
+  // históricos de leads antiguos: solo salen si hay datos, para que el total siga cuadrando.
+  const canales: Fuente[] = FUENTES_TODAS.filter((f) => FUENTES.includes(f) || ingresados.some((l) => l.fuente === f) || ventasCerradas.some((l) => l.fuente === f));
+  const porCanal = canales.map((fuente) => {
     const ingresadosCanal = ingresados.filter((l) => l.fuente === fuente);
     const ventasCanal = ventasCerradas.filter((l) => l.fuente === fuente);
     return {
@@ -147,8 +151,7 @@ export async function getReport(range: Range, scopeSucursal?: Sucursal | null) {
       monto: sumMonto(ventasCanal),
     };
   })
-    // Siempre salen TODOS los canales de llegada del CRM (Facebook, Instagram, TikTok, WhatsApp, Sitio web, Referido y Otro),
-    // aunque no tengan leads en el periodo. Se ordenan por volumen; con empate, en el orden del catálogo.
+    // Por volumen; con empate, en el orden del catálogo.
     .sort((a, b) => b.total - a.total);
 
   const porSucursal = scopeSucursal
@@ -181,9 +184,12 @@ export async function getReport(range: Range, scopeSucursal?: Sucursal | null) {
     }))
     .sort((a, b) => b.monto - a.monto || b.ventas - a.ventas || b.leads - a.leads);
 
-  const embudo = (ESTADOS as Estado[]).map((estado) => ({
-    estado,
-    total: ingresados.filter((l) => l.estado === estado).length,
+  // Embudo con los 5 estados: Nuevo, Contactado (incluye "No respondió"), Cotización (incluye "Seguimiento"), Venta y Perdido.
+  const embudo = KANBAN_COLUMNS.map((col) => ({
+    key: col.key,
+    label: col.label,
+    dot: col.dot,
+    total: ingresados.filter((l) => col.estados.includes(l.estado)).length,
   }));
 
   const tendencia = buildTendencia(ingresados, ventasCerradas, range);
