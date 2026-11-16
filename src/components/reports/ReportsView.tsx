@@ -131,46 +131,57 @@ export function ReportsView({ role }: { role: Role }) {
             </section>
           </div>
 
-          {role === "coord" && (
-            <div>
-              <h2 className="mb-2 text-sm font-semibold text-slate-700">Leads por sucursal</h2>
-              <SucursalBreakdownTable rows={data.porSucursal} />
-            </div>
-          )}
-
-          <div>
-            <h2 className="mb-2 text-sm font-semibold text-slate-700">Desempeño por asesor</h2>
-            {data.porAsesor.length === 0 ? (
-              <p className="text-sm text-slate-400">Sin datos para este periodo.</p>
-            ) : (
-              <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-                <table className="min-w-full divide-y divide-slate-200 text-sm">
-                  <thead className="bg-slate-50">
-                    <tr>
-                      <th className="px-4 py-2 text-left font-medium text-slate-500">Asesor</th>
-                      {role === "coord" && <th className="px-4 py-2 text-left font-medium text-slate-500">Sucursal</th>}
-                      <th className="px-4 py-2 text-right font-medium text-slate-500">Leads</th>
-                      <th className="px-4 py-2 text-right font-medium text-slate-500">Ventas</th>
-                      <th className="px-4 py-2 text-right font-medium text-slate-500">Monto vendido</th>
-                      <th className="px-4 py-2 text-right font-medium text-slate-500">Conversión</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {data.porAsesor.map((a) => (
-                      <tr key={`${a.asesor}-${a.sucursal}`} className={a.asesor === "Sin asignar" ? "text-slate-400" : undefined}>
-                        <td className="whitespace-nowrap px-4 py-2 font-medium text-slate-800">{a.asesor}</td>
-                        {role === "coord" && <td className="whitespace-nowrap px-4 py-2 text-slate-600">{SUCURSAL_LABELS[a.sucursal]}</td>}
-                        <td className="px-4 py-2 text-right">{a.leads}</td>
-                        <td className="px-4 py-2 text-right font-semibold">{a.ventas}</td>
-                        <td className="px-4 py-2 text-right">{money(a.monto)}</td>
-                        <td className="px-4 py-2 text-right">{a.conversion}%</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+          {/* Sucursal y asesor: mismo tamaño que Embudo y Canales (dos columnas); con muchas filas se desplazan dentro de su tarjeta */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            {role === "coord" && (
+              <section className="min-w-0">
+                <h2 className="mb-2 text-sm font-semibold text-slate-700">Leads por sucursal</h2>
+                <SucursalBreakdownTable rows={data.porSucursal} />
+              </section>
             )}
-            <p className="mt-1 text-xs text-slate-400">Conversión = ventas ÷ (ventas + perdidos) cerrados en el periodo.</p>
+
+            <section className="min-w-0">
+              <h2 className="mb-2 text-sm font-semibold text-slate-700">Desempeño por asesor</h2>
+              {data.porAsesor.length === 0 ? (
+                <p className="text-sm text-slate-400">Sin datos para este periodo.</p>
+              ) : (
+                <div className="max-h-80 overflow-auto rounded-lg border border-slate-200 bg-white">
+                  <table className="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead className="sticky top-0 z-10 bg-slate-50 shadow-[0_1px_0_0_#e2e8f0]">
+                      <tr>
+                        <th className="px-3 py-1.5 text-left font-medium text-slate-500">Asesor</th>
+                        {role === "coord" && <th className="px-3 py-1.5 text-left font-medium text-slate-500">Sucursal</th>}
+                        <th className="px-3 py-1.5 text-right font-medium text-slate-500">Leads</th>
+                        <th className="px-3 py-1.5 text-right font-medium text-slate-500">Ventas</th>
+                        <th className="px-3 py-1.5 text-right font-medium text-slate-500">Monto</th>
+                        <th className="px-3 py-1.5 text-right font-medium text-slate-500" title="Ventas ÷ (ventas + perdidos)">
+                          Conv.
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {data.porAsesor.map((a) => (
+                        <tr key={`${a.asesor}-${a.sucursal}`} className={a.asesor === "Sin asignar" ? "text-slate-400" : undefined}>
+                          <td className="max-w-[10rem] truncate px-3 py-1.5 font-medium text-slate-800" title={a.asesor}>
+                            {a.asesor}
+                          </td>
+                          {role === "coord" && (
+                            <td className="max-w-[8rem] truncate px-3 py-1.5 text-slate-600" title={SUCURSAL_LABELS[a.sucursal]}>
+                              {SUCURSAL_LABELS[a.sucursal]}
+                            </td>
+                          )}
+                          <td className="px-3 py-1.5 text-right">{a.leads}</td>
+                          <td className="px-3 py-1.5 text-right font-semibold">{a.ventas}</td>
+                          <td className="whitespace-nowrap px-3 py-1.5 text-right">{money(a.monto)}</td>
+                          <td className="px-3 py-1.5 text-right">{a.conversion}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <p className="mt-1 text-xs text-slate-400">Conv. = ventas ÷ (ventas + perdidos) cerrados en el periodo.</p>
+            </section>
           </div>
         </div>
       )}

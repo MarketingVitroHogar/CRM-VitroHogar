@@ -14,23 +14,23 @@ export function SucursalBreakdownTable({ rows }: { rows: SucursalRow[] }) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+    <div className="max-h-80 overflow-auto rounded-lg border border-slate-200 bg-white">
       <table className="min-w-full divide-y divide-slate-200 text-sm">
-        <thead className="bg-slate-50">
+        <thead className="sticky top-0 z-10 bg-slate-50 shadow-[0_1px_0_0_#e2e8f0]">
           <tr>
-            <th className="px-4 py-2 text-left font-medium text-slate-500">Sucursal</th>
-            <th className="px-4 py-2 text-right font-medium text-slate-500">Leads</th>
-            <th className="px-4 py-2 text-right font-medium text-slate-500">Ventas</th>
-            <th className="px-4 py-2 text-right font-medium text-slate-500">Monto de venta</th>
+            <th className="px-3 py-1.5 text-left font-medium text-slate-500">Sucursal</th>
+            <th className="px-3 py-1.5 text-right font-medium text-slate-500">Leads</th>
+            <th className="px-3 py-1.5 text-right font-medium text-slate-500">Ventas</th>
+            <th className="px-3 py-1.5 text-right font-medium text-slate-500">Monto</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
           {rows.map((row) => (
             <tr key={row.sucursal}>
-              <td className="px-4 py-2 text-slate-800">{SUCURSAL_LABELS[row.sucursal]}</td>
-              <td className="px-4 py-2 text-right text-slate-700">{row.total}</td>
-              <td className="px-4 py-2 text-right text-slate-700">{row.ventas}</td>
-              <td className="px-4 py-2 text-right text-slate-700">
+              <td className="px-3 py-1.5 text-slate-800">{SUCURSAL_LABELS[row.sucursal]}</td>
+              <td className="px-3 py-1.5 text-right text-slate-700">{row.total}</td>
+              <td className="px-3 py-1.5 text-right text-slate-700">{row.ventas}</td>
+              <td className="px-3 py-1.5 text-right text-slate-700">
                 ${row.montoVendido.toLocaleString("es-MX")}
               </td>
             </tr>
