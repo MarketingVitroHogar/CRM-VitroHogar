@@ -4,11 +4,17 @@ import type { Role } from "@prisma/client";
  * Aviso de "Novedades" del CRM. Al cambiar NOVEDADES_VERSION, todas las personas vuelven a ver el aviso
  * una vez (se guarda en su navegador, por usuario). Aquí se listan los cambios; no hay nada más que tocar.
  */
-export const NOVEDADES_VERSION = "2026-11-16";
+export const NOVEDADES_VERSION = "2026-11-16-b";
 
 export type Novedad = { icono: string; titulo: string; texto: string; roles?: Role[] };
 
 export const NOVEDADES: Novedad[] = [
+  {
+    icono: "🔍",
+    titulo: "Filtro por periodo y mejor búsqueda",
+    texto:
+      "En Leads y en Reportes ahora puedes filtrar por Hoy, Ayer, Esta semana, Este mes o un rango personalizado. El buscador de leads busca mientras escribes, sin importar acentos o mayúsculas, y encuentra por nombre, teléfono, interés, asesor o folio.",
+  },
   {
     icono: "▦",
     titulo: "Leads en Kanban, Lista o Tarjetas",
