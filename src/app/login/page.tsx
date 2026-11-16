@@ -4,6 +4,20 @@ import { useState } from "react";
 import Image from "next/image";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { PW_NOTICE_DISMISSED_KEY } from "@/lib/accountEvents";
+import { LOCK_MINUTES, LOGIN_INACTIVE, LOGIN_LOCKED, LOGIN_REMAINING_PREFIX } from "@/lib/loginLimits";
+
+function loginErrorMessage(code: string): string {
+  if (code === LOGIN_LOCKED) {
+    return `Demasiados intentos fallidos. Por seguridad, el acceso a esta cuenta se bloqueó ${LOCK_MINUTES} minutos. Intenta de nuevo más tarde o pide ayuda a Coordinación.`;
+  }
+  if (code === LOGIN_INACTIVE) return "Tu cuenta está desactivada. Contacta a Coordinación para que la reactive.";
+  if (code.startsWith(LOGIN_REMAINING_PREFIX)) {
+    const left = Number(code.slice(LOGIN_REMAINING_PREFIX.length));
+    return `Usuario o contraseña incorrectos. Te quedan ${left} intento${left === 1 ? "" : "s"} antes de un bloqueo temporal.`;
+  }
+  return "Usuario o contraseña incorrectos";
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -26,10 +40,16 @@ export default function LoginPage() {
     setLoading(false);
 
     if (result?.error) {
-      setError("Usuario o contraseña incorrectos");
+      setError(loginErrorMessage(result.error));
       return;
     }
 
+    // Nueva sesión: el aviso de "cambiar contraseña" vuelve a mostrarse si aún no la ha cambiado.
+    try {
+      sessionStorage.removeItem(PW_NOTICE_DISMISSED_KEY);
+    } catch {
+      /* ignorar */
+    }
     router.push("/leads");
     router.refresh();
   }

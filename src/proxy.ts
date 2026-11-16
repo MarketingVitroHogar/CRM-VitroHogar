@@ -5,8 +5,11 @@ export const config = {
     "/leads/:path*",
     "/reports/:path*",
     "/import/:path*",
+    "/users/:path*",
     "/api/leads/:path*",
     "/api/reports/:path*",
     "/api/import/:path*",
+    "/api/users/:path*",
+    "/api/account/:path*",
   ],
 };

@@ -41,7 +41,9 @@ Stack: Next.js (App Router) + TypeScript + Prisma + NextAuth (Credentials/JWT) +
    - `coord` — Coordinador / Community Manager (acceso completo a todas las sucursales)
    - `gerente.blvd_zacatecas`, `gerente.universidad`, `gerente.haciendas`, `gerente.lopez_mateos`, `gerente.ayuntamiento`, `gerente.paseo_de_la_cruz`, `gerente.rincon_de_romos`, `gerente.jesus_maria`, `gerente.gonzalez_gallo`, `gerente.juan_pablo`, `gerente.guadalupe`, `gerente.colon`, `gerente.tli` — un Gerente por sucursal, limitado a los leads de su propia sucursal
 
-   No hay pantalla de gestión de usuarios en esta versión: para cambiar contraseñas o agregar cuentas se vuelve a correr el seed (es idempotente) o se edita directamente la base de datos.
+   **Seguridad de cuentas:** cada persona puede cambiar su contraseña desde su nombre de usuario (arriba a la derecha → Cambiar contraseña; mínimo 8 caracteres, siempre cifrada). Al entrar, mientras no la haya cambiado, ve un aviso recomendándolo (no es obligatorio). Tras 5 contraseñas incorrectas seguidas la cuenta se bloquea 15 minutos. Coordinación tiene la pestaña **Usuarios** para desactivar/reactivar cuentas (no se borra nada y la sesión abierta se cierra al instante), restablecer una contraseña (temporal que se muestra una sola vez) y quitar bloqueos. Agregar cuentas nuevas sigue siendo con el seed (idempotente) o directo en la base.
+
+   Pruebas: con un servidor local y una base de prueba, `node scripts/verify-security.mjs`.
 
 5. Levantar el servidor de desarrollo:
 

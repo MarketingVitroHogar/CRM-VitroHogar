@@ -56,6 +56,12 @@ model User {
   sucursal     Sucursal? // null for coord, required for gerente
   createdAt    DateTime  @default(now())
 
+  // Seguridad de cuentas
+  activo            Boolean   @default(true) // false = no puede iniciar sesión (no se borra nada)
+  passwordChangedAt DateTime? // null = aún no cambia la contraseña inicial
+  failedLoginCount  Int       @default(0) // intentos fallidos seguidos
+  lockedUntil       DateTime? // bloqueo temporal por intentos fallidos
+
   @@index([role])
 }
 

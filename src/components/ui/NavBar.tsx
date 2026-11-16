@@ -1,26 +1,95 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import clsx from "clsx";
 import type { Role } from "@prisma/client";
+import { openChangePassword } from "@/lib/accountEvents";
 
 const LINKS = [
   { href: "/leads", label: "Leads", roles: ["coord", "gerente"] },
   { href: "/reports", label: "Reportes", roles: ["coord", "gerente"] },
   { href: "/import", label: "Importar Excel", roles: ["coord"] },
+  { href: "/users", label: "Usuarios", roles: ["coord"] },
 ];
+
+/** Menú del usuario: "Cambiar contraseña" y "Salir". Punto rojo mientras no haya cambiado su contraseña. */
+function UserMenu({ username, subtitle, passwordChanged }: { username: string; subtitle: string; passwordChanged: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-slate-600 hover:bg-slate-100"
+      >
+        <span className="text-xs">{username}</span>
+        {!passwordChanged && <span className="h-2 w-2 rounded-full bg-brand" title="Tienes pendiente cambiar tu contraseña" aria-label="Pendiente: cambiar contraseña" />}
+        <span aria-hidden className="text-[10px]">
+          ▾
+        </span>
+      </button>
+      {open && (
+        <div role="menu" className="absolute right-0 top-full z-30 mt-1 w-56 rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg">
+          <div className="border-b border-slate-100 px-2.5 py-2">
+            <p className="text-sm font-semibold text-slate-900">{username}</p>
+            <p className="text-xs text-slate-500">{subtitle}</p>
+          </div>
+          <button
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              openChangePassword();
+            }}
+            className="mt-1 flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
+          >
+            Cambiar contraseña
+            {!passwordChanged && <span className="rounded bg-red-50 px-1.5 text-[11px] font-semibold text-brand">pendiente</span>}
+          </button>
+          <button
+            role="menuitem"
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            className="flex w-full rounded-md px-2.5 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
+          >
+            Salir
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function NavBar({
   role,
   username,
   subtitle,
+  passwordChanged,
 }: {
   role: Role;
   username: string;
   subtitle: string;
+  passwordChanged: boolean;
 }) {
   const pathname = usePathname();
 
@@ -58,13 +127,7 @@ export function NavBar({
             </Link>
           ))}
           <span className="mx-1 hidden text-slate-300 sm:inline">|</span>
-          <span className="text-xs text-slate-500">{username}</span>
-          <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            className="rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100"
-          >
-            Salir
-          </button>
+          <UserMenu username={username} subtitle={subtitle} passwordChanged={passwordChanged} />
         </nav>
       </div>
     </header>
