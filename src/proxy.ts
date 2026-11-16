@@ -11,5 +11,6 @@ export const config = {
     "/api/import/:path*",
     "/api/users/:path*",
     "/api/account/:path*",
+    "/api/avisos/:path*",
   ],
 };

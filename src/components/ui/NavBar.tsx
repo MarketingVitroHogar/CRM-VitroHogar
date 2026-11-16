@@ -8,6 +8,7 @@ import { signOut } from "next-auth/react";
 import clsx from "clsx";
 import type { Role } from "@prisma/client";
 import { openChangePassword } from "@/lib/accountEvents";
+import { AvisosBell } from "@/components/avisos/AvisosBell";
 
 const LINKS = [
   { href: "/leads", label: "Leads", roles: ["coord", "gerente"] },
@@ -127,6 +128,7 @@ export function NavBar({
             </Link>
           ))}
           <span className="mx-1 hidden text-slate-300 sm:inline">|</span>
+          <AvisosBell showSucursal={role === "coord"} />
           <UserMenu username={username} subtitle={subtitle} passwordChanged={passwordChanged} />
         </nav>
       </div>

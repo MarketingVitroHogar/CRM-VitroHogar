@@ -85,3 +85,11 @@ npm run build      # build de producción
 npm run lint       # eslint
 npx prisma studio  # explorador visual de la base de datos
 ```
+
+## Uso diario: Kanban, avisos y captura automática de leads
+
+- **Leads** se puede ver como **Kanban** (por defecto), **Lista** o **Tarjetas**; cada persona conserva la vista que eligió. El Kanban agrupa los estados en 5 columnas (Nuevo, Contactado [incluye No respondió], Cotización [incluye Seguimiento], Venta y Perdido); las tarjetas se arrastran entre columnas (en celular hay un selector "Mover a"). El gerente no puede regresar un lead a "Nuevo" (solo Coordinación).
+- **Campana de avisos** (arriba): leads en estado "Nuevo" por atender de los últimos 30 días (Coordinación: todas las sucursales; gerente: solo la suya). Se actualiza sola cada minuto y avisa cuando llega un lead nuevo. No guarda nada en la base: se calcula al momento.
+- **Captura automática**: un servicio externo (Zapier, Make, formulario de Meta, etc.) puede crear leads con `POST /api/intake/leads`, enviando la clave en la cabecera `x-api-key` (o `Authorization: Bearer`). Cuerpo: `{ "nombre", "telefono", "sucursal", "fuente", "interes"?, "notas"? }`. El lead entra como "Nuevo" y sin asesor, aparece en la campana y evita duplicados (mismo teléfono y sucursal en 14 días). Requiere definir `INTAKE_API_KEY` (24+ caracteres) en Vercel; sin ella la ruta responde 503.
+
+Pruebas: con servidor y base locales de prueba, `node scripts/verify-uso-diario.mjs`.

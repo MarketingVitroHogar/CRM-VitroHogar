@@ -1,14 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import clsx from "clsx";
 import type { Role } from "@prisma/client";
 import { LeadFilters, type LeadFilterState } from "./LeadFilters";
 import { LeadSearchBox } from "./LeadSearchBox";
 import { LeadCard } from "./LeadCard";
+import { LeadsKanban } from "./LeadsKanban";
+import { LeadsTable } from "./LeadsTable";
+import { VISTA_STORAGE_KEY, type LeadsVista } from "@/lib/kanban";
 import type { LeadDTO } from "@/lib/types";
 
-const LEADS_PER_PAGE = 15; // 3 columnas x 5 filas en escritorio
+const LEADS_PER_PAGE = 15; // lista y tarjetas
+
+const VISTAS: { key: LeadsVista; label: string }[] = [
+  { key: "kanban", label: "Kanban" },
+  { key: "lista", label: "Lista" },
+  { key: "tarjetas", label: "Tarjetas" },
+];
 
 function currentMonthValue(): string {
   const now = new Date();
@@ -23,24 +33,47 @@ export function LeadsView({ role }: { role: Role }) {
     orden: "desc",
     q: "",
   });
+  const [vista, setVista] = useState<LeadsVista>("kanban");
   const [leads, setLeads] = useState<LeadDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
 
+  // Cada persona recupera la vista que eligió la última vez (por defecto, Kanban).
   useEffect(() => {
-    let ignore = false;
+    try {
+      const saved = localStorage.getItem(VISTA_STORAGE_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- preferencia guardada en el navegador (solo cliente)
+      if (saved === "kanban" || saved === "lista" || saved === "tarjetas") setVista(saved);
+    } catch {
+      /* sin almacenamiento: se queda en Kanban */
+    }
+  }, []);
 
-    async function fetchLeads() {
-      setLoading(true);
-      setError(null);
+  function changeVista(v: LeadsVista) {
+    setVista(v);
+    setPage(1);
+    try {
+      localStorage.setItem(VISTA_STORAGE_KEY, v);
+    } catch {
+      /* ignorar */
+    }
+  }
+
+  const fetchLeads = useCallback(
+    async (quiet = false) => {
+      if (!quiet) {
+        setLoading(true);
+        setError(null);
+      }
       const params = new URLSearchParams();
       if (filters.q) {
         params.set("q", filters.q);
       } else if (filters.mes) {
         params.set("mes", filters.mes);
       }
-      if (filters.estado) params.set("estado", filters.estado);
+      // En Kanban las columnas son los estados: el filtro de estado no aplica.
+      if (filters.estado && vista !== "kanban") params.set("estado", filters.estado);
       if (role === "coord" && filters.sucursal) params.set("sucursal", filters.sucursal);
       params.set("orden", filters.orden);
 
@@ -48,21 +81,23 @@ export function LeadsView({ role }: { role: Role }) {
         const res = await fetch(`/api/leads?${params.toString()}`);
         if (!res.ok) throw new Error("No se pudieron cargar los leads");
         const data = await res.json();
-        if (!ignore) setLeads(data.leads);
+        setLeads(data.leads);
       } catch {
-        if (!ignore) setError("Ocurrió un error al cargar los leads.");
+        if (!quiet) setError("Ocurrió un error al cargar los leads.");
       } finally {
-        if (!ignore) setLoading(false);
+        if (!quiet) setLoading(false);
       }
-    }
-
-    fetchLeads();
-    return () => {
-      ignore = true;
-    };
-  }, [filters, role]);
+    },
+    [filters, role, vista]
+  );
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- carga de datos al cambiar filtros o vista
+    fetchLeads();
+  }, [fetchLeads]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- al cambiar filtros se vuelve a la página 1
     setPage(1);
   }, [filters]);
 
@@ -84,23 +119,35 @@ export function LeadsView({ role }: { role: Role }) {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <LeadSearchBox value={filters.q} onSearch={(q) => setFilters((prev) => ({ ...prev, q }))} />
         {role === "coord" && (
-          <Link
-            href="/leads/new"
-            className="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
-          >
+          <Link href="/leads/new" className="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark">
             + Nuevo lead
           </Link>
         )}
       </div>
 
-      <LeadFilters value={filters} onChange={setFilters} showSucursal={role === "coord"} />
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <LeadFilters value={filters} onChange={setFilters} showSucursal={role === "coord"} showEstado={vista !== "kanban"} />
+        <div className="inline-flex rounded-lg border border-slate-300 bg-white p-0.5" role="group" aria-label="Tipo de vista">
+          {VISTAS.map((v) => (
+            <button
+              key={v.key}
+              onClick={() => changeVista(v.key)}
+              aria-pressed={vista === v.key}
+              className={clsx("rounded-md px-3.5 py-1.5 text-sm font-medium", vista === v.key ? "bg-brand text-white" : "text-slate-600 hover:bg-slate-50")}
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {filters.q && (
         <p className="-mt-2 text-xs text-slate-400">
           Buscando &quot;{filters.q}&quot; en todos los meses — el filtro de mes no aplica mientras hay una búsqueda activa.
         </p>
       )}
 
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-slate-500" aria-live="polite">
         {loading ? "Cargando…" : `${leads.length} lead${leads.length === 1 ? "" : "s"} encontrado${leads.length === 1 ? "" : "s"}`}
       </p>
 
@@ -112,19 +159,21 @@ export function LeadsView({ role }: { role: Role }) {
         </p>
       )}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {pageLeads.map((lead) => (
-          <LeadCard
-            key={lead.id}
-            lead={lead}
-            role={role}
-            showSucursal={role === "coord"}
-            onDelete={handleDelete}
-          />
-        ))}
-      </div>
+      {!loading && leads.length > 0 && vista === "kanban" && (
+        <LeadsKanban leads={leads} role={role} setLeads={setLeads} reload={() => fetchLeads(true)} />
+      )}
 
-      {!loading && leads.length > LEADS_PER_PAGE && (
+      {!loading && leads.length > 0 && vista === "lista" && <LeadsTable leads={pageLeads} role={role} onDelete={handleDelete} />}
+
+      {!loading && leads.length > 0 && vista === "tarjetas" && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {pageLeads.map((lead) => (
+            <LeadCard key={lead.id} lead={lead} role={role} showSucursal={role === "coord"} onDelete={handleDelete} />
+          ))}
+        </div>
+      )}
+
+      {!loading && vista !== "kanban" && leads.length > LEADS_PER_PAGE && (
         <div className="flex items-center justify-center gap-3 pt-2">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}

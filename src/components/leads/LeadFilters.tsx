@@ -31,10 +31,13 @@ export function LeadFilters({
   value,
   onChange,
   showSucursal,
+  showEstado = true,
 }: {
   value: LeadFilterState;
   onChange: (next: LeadFilterState) => void;
   showSucursal: boolean;
+  /** En el Kanban las columnas ya son los estados, así que el filtro se oculta. */
+  showEstado?: boolean;
 }) {
   const monthOptions = recentMonthOptions();
 
@@ -74,6 +77,7 @@ export function LeadFilters({
         </div>
       )}
 
+      {showEstado && (
       <div>
         <label className="mb-1 block text-xs font-medium text-slate-500">Estado</label>
         <select
@@ -89,6 +93,7 @@ export function LeadFilters({
           ))}
         </select>
       </div>
+      )}
 
       <div>
         <label className="mb-1 block text-xs font-medium text-slate-500">Ordenar por fecha</label>
