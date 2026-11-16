@@ -8,6 +8,7 @@ import { signOut } from "next-auth/react";
 import clsx from "clsx";
 import type { Role } from "@prisma/client";
 import { openChangePassword } from "@/lib/accountEvents";
+import { openNovedades } from "@/lib/novedades";
 import { AvisosBell } from "@/components/avisos/AvisosBell";
 
 const LINKS = [
@@ -67,6 +68,16 @@ function UserMenu({ username, subtitle, passwordChanged }: { username: string; s
           >
             Cambiar contraseña
             {!passwordChanged && <span className="rounded bg-red-50 px-1.5 text-[11px] font-semibold text-brand">pendiente</span>}
+          </button>
+          <button
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              openNovedades();
+            }}
+            className="flex w-full rounded-md px-2.5 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
+          >
+            Novedades
           </button>
           <button
             role="menuitem"

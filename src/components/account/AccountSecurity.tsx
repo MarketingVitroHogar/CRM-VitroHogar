@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
+import type { Role } from "@prisma/client";
 import { OPEN_CHANGE_PASSWORD_EVENT, PW_NOTICE_DISMISSED_KEY } from "@/lib/accountEvents";
+import { NOVEDADES_EVENT, novedadesFor, novedadesKey } from "@/lib/novedades";
 
 const input =
   "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand";
@@ -15,10 +17,11 @@ const btnSoft = "rounded-md bg-slate-100 px-4 py-2 text-sm font-medium text-slat
  * Aviso al entrar (si todavía no cambió su contraseña) + cuadro "Cambiar contraseña".
  * El aviso NO es obligatorio: "Más tarde" lo cierra y vuelve a salir la próxima vez que entre.
  */
-export function AccountSecurity({ passwordChanged }: { passwordChanged: boolean }) {
+export function AccountSecurity({ passwordChanged, role, username }: { passwordChanged: boolean; role: Role; username: string }) {
   const router = useRouter();
   const { toast, toastNode } = useToast();
   const [notice, setNotice] = useState(false);
+  const [novedades, setNovedades] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
   const [actual, setActual] = useState("");
   const [nueva, setNueva] = useState("");
@@ -26,16 +29,44 @@ export function AccountSecurity({ passwordChanged }: { passwordChanged: boolean 
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
+  // Al entrar: primero las Novedades (una sola vez por persona y versión); después, el aviso de contraseña.
+  const maybeShowPasswordNotice = useCallback(() => {
     if (passwordChanged) return;
     try {
       if (sessionStorage.getItem(PW_NOTICE_DISMISSED_KEY)) return;
     } catch {
       /* sin sessionStorage: se muestra igual */
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- el aviso depende de sessionStorage (solo cliente)
     setNotice(true);
   }, [passwordChanged]);
+
+  useEffect(() => {
+    let visto = false;
+    try {
+      visto = !!localStorage.getItem(novedadesKey(username));
+    } catch {
+      /* sin almacenamiento: se muestra */
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- depende de almacenamiento del navegador (solo cliente)
+    if (!visto) setNovedades(true);
+    else maybeShowPasswordNotice();
+  }, [username, maybeShowPasswordNotice]);
+
+  useEffect(() => {
+    const h = () => setNovedades(true); // desde el menú de usuario → "Novedades"
+    window.addEventListener(NOVEDADES_EVENT, h);
+    return () => window.removeEventListener(NOVEDADES_EVENT, h);
+  }, []);
+
+  function closeNovedades() {
+    setNovedades(false);
+    try {
+      localStorage.setItem(novedadesKey(username), "1");
+    } catch {
+      /* ignorar */
+    }
+    maybeShowPasswordNotice();
+  }
 
   useEffect(() => {
     const h = () => {
@@ -88,6 +119,28 @@ export function AccountSecurity({ passwordChanged }: { passwordChanged: boolean 
 
   return (
     <>
+      <Modal open={novedades} onClose={closeNovedades} title="Novedades del CRM" icon="✨">
+        <p className="mb-3 text-sm text-slate-600">Esto es lo nuevo que ya puedes usar:</p>
+        <ul className="flex flex-col gap-3">
+          {novedadesFor(role).map((n) => (
+            <li key={n.titulo} className="flex gap-3">
+              <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-100 text-base" aria-hidden>
+                {n.icono}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-slate-900">{n.titulo}</span>
+                <span className="block text-sm leading-relaxed text-slate-600">{n.texto}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-5 flex justify-end">
+          <button className={btnBrand} onClick={closeNovedades}>
+            Entendido
+          </button>
+        </div>
+      </Modal>
+
       <Modal open={notice} onClose={later} title="Ya puedes cambiar tu contraseña" icon="🔑">
         <p className="mb-3 text-sm leading-relaxed text-slate-600">
           Ahora puedes elegir tu propia contraseña. Te recomendamos cambiarla para mantener tu cuenta protegida.
