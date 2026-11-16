@@ -50,7 +50,7 @@ export default function LoginPage() {
     } catch {
       /* ignorar */
     }
-    router.push("/leads");
+    router.push("/inicio");
     router.refresh();
   }
 

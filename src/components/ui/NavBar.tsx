@@ -12,6 +12,7 @@ import { openNovedades } from "@/lib/novedades";
 import { AvisosBell } from "@/components/avisos/AvisosBell";
 
 const LINKS = [
+  { href: "/inicio", label: "Inicio", roles: ["coord", "gerente"] },
   { href: "/leads", label: "Leads", roles: ["coord", "gerente"] },
   { href: "/reports", label: "Reportes", roles: ["coord", "gerente"] },
   { href: "/import", label: "Importar Excel", roles: ["coord"] },

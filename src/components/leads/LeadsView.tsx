@@ -47,12 +47,15 @@ export function LeadsView({ role }: { role: Role }) {
     qEnPeriodo: false,
   }));
 
+  // "Por asignar": leads abiertos sin asesor, de todas las fechas (se ignora el periodo).
+  const [soloPorAsignar, setSoloPorAsignar] = useState(() => searchParams.get("sinAsesor") === "1");
   // Si ya estás en Leads y tocas una sucursal en la campana, los filtros se actualizan.
   const urlKey = searchParams.toString();
   useEffect(() => {
     if (!urlKey) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- sincroniza los filtros con la dirección
     setFilters((f) => ({ ...f, ...filtersFromUrl(new URLSearchParams(urlKey), role), q: "" }));
+    setSoloPorAsignar(new URLSearchParams(urlKey).get("sinAsesor") === "1");
   }, [urlKey, role]);
   const [vista, setVista] = useState<LeadsVista>("kanban");
   const [leads, setLeads] = useState<LeadDTO[]>([]);
@@ -60,8 +63,6 @@ export function LeadsView({ role }: { role: Role }) {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const { toast, toastNode } = useToast();
-  // "Por asignar": leads abiertos sin asesor, de todas las fechas (se ignora el periodo).
-  const [soloPorAsignar, setSoloPorAsignar] = useState(false);
   const [porAsignar, setPorAsignar] = useState(0);
   const [asignando, setAsignando] = useState<LeadDTO | null>(null);
 

@@ -4,11 +4,31 @@ import type { Role } from "@prisma/client";
  * Aviso de "Novedades" del CRM. Al cambiar NOVEDADES_VERSION, todas las personas vuelven a ver el aviso
  * una vez (se guarda en su navegador, por usuario). Aquí se listan los cambios; no hay nada más que tocar.
  */
-export const NOVEDADES_VERSION = "2026-11-16-b";
+export const NOVEDADES_VERSION = "2026-11-17";
 
 export type Novedad = { icono: string; titulo: string; texto: string; roles?: Role[] };
 
 export const NOVEDADES: Novedad[] = [
+  {
+    icono: "🏠",
+    titulo: "Nueva pantalla de Inicio",
+    texto:
+      "Al entrar verás tus pendientes del día: leads sin asignar, leads sin atender y seguimientos de hoy, junto con el desempeño del mes. Coordinación ve lo mismo a nivel de todas las sucursales, más los leads cargados y los canales.",
+  },
+  {
+    icono: "👤",
+    titulo: "Asignar asesor en un paso",
+    texto:
+      "Los leads sin asesor muestran el botón Asignar (en Inicio, en Leads y en la campana). En Leads, el aviso \"por asignar\" te muestra solo los que faltan.",
+    roles: ["gerente"],
+  },
+  {
+    icono: "⚡",
+    titulo: "Captura rápida de leads",
+    texto:
+      "Nuevo lead ahora pide solo nombre, teléfono, interés, canal y sucursal. Usa \"Guardar y cargar otro\" para registrar varios seguidos; avisa si el teléfono ya existe.",
+    roles: ["coord"],
+  },
   {
     icono: "🔍",
     titulo: "Filtro por periodo y mejor búsqueda",
