@@ -8,7 +8,7 @@ import { EstadoBadge } from "./EstadoBadge";
 import { OverdueIndicator } from "./OverdueIndicator";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
-import { FUENTE_LABELS, SUCURSAL_LABELS, ESTADO_LABELS, GERENTE_ALLOWED_ESTADOS } from "@/lib/catalogs";
+import { FUENTE_LABELS, SUCURSAL_LABELS, ESTADO_LABELS, GERENTE_ALLOWED_ESTADOS, asesoresFor } from "@/lib/catalogs";
 import { KANBAN_COLUMNS, columnOf } from "@/lib/kanban";
 import { isOverdue } from "@/lib/leadPolicy";
 import { formatDateOnly } from "@/lib/dateOnly";
@@ -18,7 +18,8 @@ const PER_COLUMN = 40; // tarjetas visibles por columna (el resto con "Mostrar m
 
 const money = (v: string | number | null) => (v == null ? "" : "$" + Math.round(Number(v)).toLocaleString("es-MX"));
 
-type Pending = { lead: LeadDTO; target: Estado } | null;
+// needsAsesor: el gerente mueve un lead que aún no tiene asesor → debe elegir uno.
+type Pending = { lead: LeadDTO; target: Estado; needsAsesor: boolean } | null;
 
 async function patchLead(id: string, body: Record<string, unknown>) {
   const res = await fetch(`/api/leads/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -44,6 +45,7 @@ export function LeadsKanban({
   const [pending, setPending] = useState<Pending>(null);
   const [monto, setMonto] = useState("");
   const [folio, setFolio] = useState("");
+  const [asesor, setAsesor] = useState("");
   const [saving, setSaving] = useState(false);
   const [shown, setShown] = useState<Record<string, number>>({});
 
@@ -52,7 +54,7 @@ export function LeadsKanban({
 
   async function apply(lead: LeadDTO, target: Estado, extra: Record<string, unknown> = {}) {
     const previous = leads;
-    setLeads((prev) => prev.map((l) => (l.id === lead.id ? { ...l, estado: target } : l))); // se ve al instante
+    setLeads((prev) => prev.map((l) => (l.id === lead.id ? { ...l, estado: target, ...(typeof extra.asesor === "string" ? { asesor: extra.asesor } : {}) } : l))); // se ve al instante
     try {
       await patchLead(lead.id, { estado: target, ...extra });
       toast(`${lead.nombre} → ${ESTADO_LABELS[target]}`);
@@ -69,25 +71,35 @@ export function LeadsKanban({
       toast("Solo Coordinación puede regresar un lead a “Nuevo”.");
       return;
     }
-    if (target === "VENTA") {
+    // El gerente debe indicar quién atiende el lead cuando todavía no tiene asesor
+    // (si la sucursal aún no tiene asesores registrados, no se puede pedir).
+    const needsAsesor = role === "gerente" && !lead.asesor && asesoresFor(lead.sucursal).length > 0;
+    if (target === "VENTA" || needsAsesor) {
       setMonto("");
       setFolio("");
-      setPending({ lead, target });
+      setAsesor("");
+      setPending({ lead, target, needsAsesor });
       return;
     }
     void apply(lead, target);
   }
 
-  async function confirmSale(e: React.FormEvent) {
+  async function confirmMove(e: React.FormEvent) {
     e.preventDefault();
     if (!pending) return;
     const extra: Record<string, unknown> = {};
-    if (monto.trim()) {
-      const n = Number(monto.replace(/[$,\s]/g, ""));
-      if (!Number.isFinite(n) || n < 0) return toast("Escribe un monto válido");
-      extra.montoVenta = n;
+    if (pending.needsAsesor) {
+      if (!asesor) return toast("Elige el asesor que atiende este lead");
+      extra.asesor = asesor;
     }
-    if (folio.trim()) extra.folioFactura = folio.trim();
+    if (pending.target === "VENTA") {
+      if (monto.trim()) {
+        const n = Number(monto.replace(/[$,\s]/g, ""));
+        if (!Number.isFinite(n) || n < 0) return toast("Escribe un monto válido");
+        extra.montoVenta = n;
+      }
+      if (folio.trim()) extra.folioFactura = folio.trim();
+    }
     setSaving(true);
     const p = pending;
     setPending(null);
@@ -212,30 +224,60 @@ export function LeadsKanban({
         })}
       </div>
 
-      <Modal open={!!pending} onClose={() => setPending(null)} title="Marcar como Venta">
-        <form onSubmit={confirmSale} className="flex flex-col gap-4">
+      <Modal
+        open={!!pending}
+        onClose={() => setPending(null)}
+        title={pending?.target === "VENTA" ? "Marcar como Venta" : `Mover a ${pending ? ESTADO_LABELS[pending.target] : ""}`}
+      >
+        <form onSubmit={confirmMove} className="flex flex-col gap-4">
           <p className="text-sm text-slate-600">
             {pending?.lead.nombre} · {pending?.lead.interes}
           </p>
-          <div>
-            <label htmlFor="k-monto" className="mb-1 block text-sm font-medium text-slate-700">
-              Monto de venta (MXN)
-            </label>
-            <input id="k-monto" inputMode="decimal" value={monto} onChange={(e) => setMonto(e.target.value)} placeholder="Ej. 18500" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand" />
-          </div>
-          <div>
-            <label htmlFor="k-folio" className="mb-1 block text-sm font-medium text-slate-700">
-              Folio de factura
-            </label>
-            <input id="k-folio" value={folio} onChange={(e) => setFolio(e.target.value)} placeholder="Ej. FAC-8801" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand" />
-          </div>
-          <p className="-mt-2 text-xs text-slate-500">Puedes dejarlos vacíos y completarlos después al editar el lead.</p>
+          {pending?.needsAsesor && (
+            <div>
+              <label htmlFor="k-asesor" className="mb-1 block text-sm font-medium text-slate-700">
+                Asesor que atiende este lead
+              </label>
+              <select
+                id="k-asesor"
+                value={asesor}
+                onChange={(e) => setAsesor(e.target.value)}
+                required
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              >
+                <option value="">Elige un asesor…</option>
+                {asesoresFor(pending.lead.sucursal).map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-slate-500">Este lead aún no tiene asesor asignado.</p>
+            </div>
+          )}
+          {pending?.target === "VENTA" && (
+            <>
+              <div>
+                <label htmlFor="k-monto" className="mb-1 block text-sm font-medium text-slate-700">
+                  Monto de venta (MXN)
+                </label>
+                <input id="k-monto" inputMode="decimal" value={monto} onChange={(e) => setMonto(e.target.value)} placeholder="Ej. 18500" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand" />
+              </div>
+              <div>
+                <label htmlFor="k-folio" className="mb-1 block text-sm font-medium text-slate-700">
+                  Folio de factura
+                </label>
+                <input id="k-folio" value={folio} onChange={(e) => setFolio(e.target.value)} placeholder="Ej. FAC-8801" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand" />
+              </div>
+              <p className="-mt-2 text-xs text-slate-500">Puedes dejar el monto y el folio vacíos y completarlos después al editar el lead.</p>
+            </>
+          )}
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => setPending(null)} className="rounded-md bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200">
               Cancelar
             </button>
             <button type="submit" disabled={saving} className="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-60">
-              Guardar venta
+              {pending?.target === "VENTA" ? "Guardar venta" : "Mover lead"}
             </button>
           </div>
         </form>

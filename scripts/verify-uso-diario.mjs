@@ -49,7 +49,10 @@ async function main() {
   check("sin sesión se niega", denied((await new Client().json("/api/avisos")).status));
   const aC = (await coord.json("/api/avisos")).body;
   const aG = (await colon.json("/api/avisos")).body;
-  check("Coordinación ve leads nuevos por atender", aC.total > 0 && aC.items.length > 0, JSON.stringify(aC).slice(0, 80));
+  check("Coordinación recibe resumen por sucursal (no la lista de leads)", aC.total > 0 && Array.isArray(aC.porSucursal) && aC.porSucursal.length > 0 && aC.items.length === 0, JSON.stringify(aC).slice(0, 80));
+  check("cada sucursal trae total y atrasados; los totales suman el total", aC.porSucursal.every((x) => typeof x.sucursal === "string" && x.total > 0 && x.atrasados <= x.total) && aC.porSucursal.reduce((n, x) => n + x.total, 0) === aC.total);
+  check("el resumen incluye varias sucursales (Colón entre ellas)", aC.porSucursal.length >= 3 && aC.porSucursal.some((x) => x.sucursal === "COLON"));
+  check("el gerente NO recibe resumen por sucursal ni ventas de otros", aG.porSucursal === undefined && aG.ventas === undefined);
   check("el gerente de Colón solo ve avisos de SU sucursal", aG.items.length > 0 && aG.items.every((i) => i.sucursal === "COLON"));
   check("el gerente ve menos o igual que Coordinación", aG.total <= aC.total);
   check("marca como atrasados los de más de 24 h", aG.atrasados >= 1 && aG.items.some((i) => i.atrasado));
@@ -70,6 +73,26 @@ async function main() {
   const other = (await blvd.json("/api/leads")).body.leads[0];
   check("gerente NO puede mover un lead de otra sucursal → 403", (await colon.json(`/api/leads/${other.id}`, "PATCH", { estado: "CONTACTADO" })).status === 403);
   check("Coordinación sí puede regresar a Nuevo → 200", (await coord.json(`/api/leads/${l1.id}`, "PATCH", { estado: "NUEVO" })).status === 200);
+
+  console.log("\n== Kanban: el gerente asigna asesor al mover (servidor) ==");
+  const sinAsesor = (await blvd.json("/api/leads")).body.leads.find((l) => l.estado === "NUEVO" && !l.asesor);
+  check("hay un lead sin asesor en Blvd. Zacatecas para probar", !!sinAsesor);
+  check("asesor de OTRA sucursal → 400", (await blvd.json(`/api/leads/${sinAsesor.id}`, "PATCH", { estado: "CONTACTADO", asesor: "Saray Salgado" })).status === 400);
+  check("asesor inventado → 400", (await blvd.json(`/api/leads/${sinAsesor.id}`, "PATCH", { estado: "CONTACTADO", asesor: "Persona Inexistente" })).status === 400);
+  const asg = await blvd.json(`/api/leads/${sinAsesor.id}`, "PATCH", { estado: "CONTACTADO", asesor: "Genaro Samuel Alvarado Melesio" });
+  check("mover + asignar asesor de su sucursal → 200", asg.status === 200 && asg.body.lead.estado === "CONTACTADO" && asg.body.lead.asesor === "Genaro Samuel Alvarado Melesio");
+  const sinAsesor2 = (await blvd.json("/api/leads")).body.leads.find((l) => l.estado === "NUEVO" && !l.asesor);
+  const asgV = await blvd.json(`/api/leads/${sinAsesor2.id}`, "PATCH", { estado: "VENTA", asesor: "Yuridia Marlenne Moreno Cruz", montoVenta: 8800, folioFactura: "FAC-ASESOR" });
+  check("Venta + asesor + monto + folio en un solo guardado → 200", asgV.status === 200 && asgV.body.lead.asesor?.startsWith("Yuridia") && Number(asgV.body.lead.montoVenta) === 8800);
+
+  console.log("\n== Alertas de Coordinación: ventas cerradas ==");
+  const aV = (await coord.json("/api/avisos")).body;
+  const venta = aV.ventas?.find((v) => v.id === sinAsesor2.id);
+  check("Coordinación ve la venta recién cerrada con sucursal y monto", !!venta && venta.sucursal === "BLVD_ZACATECAS" && Number(venta.monto) === 8800 && venta.folioFactura === "FAC-ASESOR", JSON.stringify(aV.ventas?.slice(0, 1)));
+  check("las ventas vienen de la más reciente a la más antigua y son máximo 10", aV.ventas.length <= 10 && aV.ventas.every((v, i, a) => i === 0 || new Date(a[i - 1].cerradaAt) >= new Date(v.cerradaAt)));
+  check("el gerente NO ve alertas de ventas (solo Coordinación)", (await blvd.json("/api/avisos")).body.ventas === undefined);
+  check("no aparecen ventas cerradas hace más de 7 días", aV.ventas.every((v) => Date.now() - new Date(v.cerradaAt).getTime() < 7 * 86_400_000 + 60_000));
+  check("la página /leads acepta ?sucursal=...&mes=todos", (await coord.raw("/leads?sucursal=COLON&mes=todos")).status === 200);
 
   console.log("\n== Entrada automática de leads ==");
   const phone = "492 " + String(100 + Math.floor(Math.random() * 899)) + " " + String(1000 + Math.floor(Math.random() * 8999));

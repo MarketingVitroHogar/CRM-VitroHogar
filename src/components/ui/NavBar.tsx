@@ -139,7 +139,7 @@ export function NavBar({
             </Link>
           ))}
           <span className="mx-1 hidden text-slate-300 sm:inline">|</span>
-          <AvisosBell showSucursal={role === "coord"} />
+          <AvisosBell role={role} username={username} />
           <UserMenu username={username} subtitle={subtitle} passwordChanged={passwordChanged} />
         </nav>
       </div>

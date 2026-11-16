@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import clsx from "clsx";
+import { SUCURSALES } from "@/lib/catalogs";
 import type { Role } from "@prisma/client";
 import { LeadFilters, type LeadFilterState } from "./LeadFilters";
 import { LeadSearchBox } from "./LeadSearchBox";
@@ -25,14 +27,32 @@ function currentMonthValue(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
+/** Filtros que vienen en la dirección (p. ej. desde la campana de Coordinación: /leads?sucursal=COLON&mes=todos). */
+function filtersFromUrl(sp: URLSearchParams, role: Role): Pick<LeadFilterState, "mes" | "sucursal"> {
+  const suc = sp.get("sucursal");
+  return {
+    mes: sp.get("mes") === "todos" ? "" : currentMonthValue(),
+    // Solo Coordinación elige sucursal; el gerente siempre queda limitado a la suya en el servidor.
+    sucursal: role === "coord" && suc && (SUCURSALES as string[]).includes(suc) ? suc : "",
+  };
+}
+
 export function LeadsView({ role }: { role: Role }) {
-  const [filters, setFilters] = useState<LeadFilterState>({
-    mes: currentMonthValue(),
-    sucursal: "",
+  const searchParams = useSearchParams();
+  const [filters, setFilters] = useState<LeadFilterState>(() => ({
+    ...filtersFromUrl(searchParams, role),
     estado: "",
     orden: "desc",
     q: "",
-  });
+  }));
+
+  // Si ya estás en Leads y tocas una sucursal en la campana, los filtros se actualizan.
+  const urlKey = searchParams.toString();
+  useEffect(() => {
+    if (!urlKey) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sincroniza los filtros con la dirección
+    setFilters((f) => ({ ...f, ...filtersFromUrl(new URLSearchParams(urlKey), role), q: "" }));
+  }, [urlKey, role]);
   const [vista, setVista] = useState<LeadsVista>("kanban");
   const [leads, setLeads] = useState<LeadDTO[]>([]);
   const [loading, setLoading] = useState(true);
