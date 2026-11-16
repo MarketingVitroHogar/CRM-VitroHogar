@@ -54,11 +54,13 @@ async function main() {
   console.log("\n== Coordinación ==");
   const C = await coord.text("/inicio");
   check("carga (200)", C.status === 200);
-  for (const t of ["Por revisar hoy", "Leads sin asignar", "Leads sin atender", "Leads cargados", "Hoy", "Esta semana", "Este mes", "Desempeño de la red este mes", "Leads del mes", "Ventas del mes", "Total vendido", "Conversión", "Sucursales este mes", "Leads por canal este mes", "Ventas de los últimos 7 días", "+ Nuevo lead"])
+  for (const t of ["Por revisar hoy", "Leads sin asignar", "Leads sin atender", "Leads cargados", "Hoy", "Esta semana", "Este mes", "Desempeño de la red este mes", "Leads del mes", "Ventas del mes", "Total vendido", "Conversión", "Sucursales este mes", "Leads por canal este mes", "Ventas cerradas este mes", "+ Nuevo lead"])
     check(`muestra «${t}»`, C.text.includes(t));
   check("NO muestra la sección propia del gerente", !C.text.includes("Tus pendientes") && !C.text.includes("Desempeño por asesor") && !C.text.includes("Seguimientos de hoy"));
   check("Coordinación ve varias sucursales", ["Blvd. Zacatecas", "Colón", "Haciendas"].filter((s) => C.text.includes(s)).length >= 2);
-  const sinAsigC = (await coord.json("/api/leads?sinAsesor=1")).body.leads.length;
+    const _hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Mexico_City" });
+  const _mes = `&desde=${_hoy.slice(0, 8)}01&hasta=${_hoy}`;
+const sinAsigC = (await coord.json("/api/leads?sinAsesor=1" + _mes)).body.leads.length;
   check("el total de «sin asignar» coincide con Leads", num(C.text, /Leads sin asignar Aún no tienen asesor (\d+)/) === sinAsigC, `${num(C.text, /Leads sin asignar Aún no tienen asesor (\d+)/)} vs ${sinAsigC}`);
   const avC = (await coord.json("/api/avisos")).body;
   check("el total de «sin atender» coincide con la campana", num(C.text, /Leads sin atender (?:\d+ con más de 24 h|Leads nuevos sin primer contacto) (\d+)/) === avC.total, `${avC.total}`);
@@ -67,11 +69,11 @@ async function main() {
   console.log("\n== Gerente (Blvd. Zacatecas) ==");
   const G = await blvd.text("/inicio");
   check("carga (200)", G.status === 200);
-  for (const t of ["Tus pendientes", "Leads sin asignar", "Leads sin atender", "Seguimientos de hoy", "Desempeño de tu sucursal este mes", "Leads del mes", "Ventas del mes", "Desempeño por asesor", "Ventas de los últimos 7 días", "Sucursal Blvd. Zacatecas"])
+  for (const t of ["Tus pendientes", "Leads sin asignar", "Leads sin atender", "Seguimientos de hoy", "Desempeño de tu sucursal este mes", "Leads del mes", "Ventas del mes", "Desempeño por asesor", "Ventas cerradas este mes", "Sucursal Blvd. Zacatecas"])
     check(`muestra «${t}»`, G.text.includes(t));
   check("NO muestra lo de Coordinación", !G.text.includes("Por revisar hoy") && !G.text.includes("Sucursales este mes") && !G.text.includes("Leads por canal") && !G.text.includes("+ Nuevo lead") && !G.text.includes("Leads cargados"));
   check("NO aparecen otras sucursales", !["Haciendas", "Universidad", "Colón", "Guadalupe", "Jesús María"].some((s) => G.text.includes(s)));
-  const sinAsigG = (await blvd.json("/api/leads?sinAsesor=1")).body.leads.length;
+  const sinAsigG = (await blvd.json("/api/leads?sinAsesor=1" + _mes)).body.leads.length;
   check("«sin asignar» = los de SU sucursal sin asesor", num(G.text, /Leads sin asignar Elige qué asesor los atiende (\d+)/) === sinAsigG, `${sinAsigG}`);
   check("muestra el botón Asignar en cada lead", sinAsigG === 0 || (G.text.match(/Asignar/g) ?? []).length >= 1);
   const avG = (await blvd.json("/api/avisos")).body;

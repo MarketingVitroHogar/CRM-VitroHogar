@@ -8,7 +8,6 @@ import { asesoresFor, SUCURSALES } from "@/lib/catalogs";
 type U = { role: Role; sucursal: Sucursal | null };
 
 const DAY = 86_400_000;
-const VENTANA_SIN_ATENDER_DIAS = 30; // igual que la campana: solo leads ingresados en los últimos 30 días
 const ABIERTO = { notIn: ["VENTA", "PERDIDO"] as ("VENTA" | "PERDIDO")[] };
 
 export type LeadPendiente = {
@@ -26,6 +25,7 @@ type PorSucursal = { sucursal: Sucursal; total: number; atrasados: number };
 
 /**
  * Datos de la pantalla de Inicio, con el alcance del rol (el gerente solo ve su sucursal; se filtra aquí, en el servidor).
+ * TODO es del mes en curso: solo leads ingresados este mes (y ventas cerradas este mes), para no mezclar meses pasados.
  *  - Tareas: leads sin asignar (sin asesor), sin atender (Nuevo) y seguimientos de hoy/vencidos.
  *  - Desempeño del mes en curso (mismo cálculo que Reportes).
  *  - Solo Coordinación: leads cargados hoy/esta semana y sucursales sin asesores registrados.
@@ -41,8 +41,9 @@ export async function getInicio(user: U) {
 
   const reporteMes = await getReport({ start: mesInicio, end: manana }, scope);
 
-  // ---- Sin asignar: leads abiertos que todavía no tienen asesor (de cualquier fecha) ----
-  const sinAsignarWhere = { ...sucWhere, asesor: null, estado: ABIERTO };
+  // ---- Sin asignar: leads abiertos del mes que todavía no tienen asesor ----
+  const delMes = { gte: mesInicio, lt: manana };
+  const sinAsignarWhere = { ...sucWhere, asesor: null, estado: ABIERTO, fecha: delMes };
   const sinAsignarRows = await prisma.lead.findMany({
     where: sinAsignarWhere,
     orderBy: { createdAt: "asc" }, // los más viejos primero: son los más urgentes
@@ -61,9 +62,9 @@ export async function getInicio(user: U) {
   });
   const sinAsignar = sinAsignarRows.map(toPendiente);
 
-  // ---- Sin atender: leads en "Nuevo" de los últimos 30 días ----
+  // ---- Sin atender: leads en "Nuevo" ingresados este mes ----
   const nuevosRows = await prisma.lead.findMany({
-    where: { ...sucWhere, estado: "NUEVO", fecha: { gte: new Date(hoy.getTime() - VENTANA_SIN_ATENDER_DIAS * DAY) } },
+    where: { ...sucWhere, estado: "NUEVO", fecha: delMes },
     orderBy: { createdAt: "asc" },
     take: 1000,
     select: { id: true, nombre: true, telefono: true, interes: true, sucursal: true, estado: true, createdAt: true, proximoSeguimiento: true },
@@ -81,8 +82,8 @@ export async function getInicio(user: U) {
     return [...m.values()].sort((a, b) => b.atrasados - a.atrasados || b.total - a.total);
   };
 
-  // ---- Seguimientos de hoy o vencidos (leads abiertos) ----
-  const pendWhere = { ...sucWhere, proximoSeguimiento: { lt: manana }, estado: ABIERTO };
+  // ---- Seguimientos de hoy o vencidos (leads abiertos ingresados este mes) ----
+  const pendWhere = { ...sucWhere, fecha: delMes, proximoSeguimiento: { lt: manana }, estado: ABIERTO };
   const [seguimientosTotal, seguimientosRows] = await Promise.all([
     prisma.lead.count({ where: pendWhere }),
     prisma.lead.findMany({
@@ -93,9 +94,9 @@ export async function getInicio(user: U) {
     }),
   ]);
 
-  // ---- Ventas de los últimos 7 días ----
+  // ---- Ventas cerradas este mes (las más recientes) ----
   const ventasRows = await prisma.lead.findMany({
-    where: { ...sucWhere, estado: "VENTA", fechaCierre: { gte: new Date(hoy.getTime() - 6 * DAY) } },
+    where: { ...sucWhere, estado: "VENTA", fechaCierre: delMes },
     orderBy: [{ fechaCierre: "desc" }, { updatedAt: "desc" }],
     take: 6,
     select: { id: true, nombre: true, sucursal: true, asesor: true, montoVenta: true, fechaCierre: true },

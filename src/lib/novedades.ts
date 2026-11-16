@@ -13,7 +13,7 @@ export const NOVEDADES: Novedad[] = [
     icono: "🏠",
     titulo: "Nueva pantalla de Inicio",
     texto:
-      "Al entrar verás tus pendientes del día: leads sin asignar, leads sin atender y seguimientos de hoy, junto con el desempeño del mes. Coordinación ve lo mismo a nivel de todas las sucursales, más los leads cargados y los canales.",
+      "Al entrar verás tus pendientes del día: leads sin asignar, leads sin atender y seguimientos de hoy, junto con el desempeño del mes (solo se muestra lo del mes en curso para evitar confusiones). Coordinación ve lo mismo a nivel de todas las sucursales, más los leads cargados y los canales.",
   },
   {
     icono: "👤",

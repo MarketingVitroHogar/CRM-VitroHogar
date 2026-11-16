@@ -16,12 +16,13 @@ export const dynamic = "force-dynamic";
 const money = (n: number | null) => (n == null ? "—" : "$" + Math.round(n).toLocaleString("es-MX"));
 const corto = (nombre: string) => nombre.split(" ").slice(0, 2).join(" ");
 
-function saludo(): { texto: string; fecha: string } {
+function saludo(): { texto: string; fecha: string; mes: string } {
   const tz = "America/Mexico_City";
   const now = new Date();
   const hora = Number(new Intl.DateTimeFormat("es-MX", { timeZone: tz, hour: "numeric", hour12: false }).format(now));
   const fecha = new Intl.DateTimeFormat("es-MX", { timeZone: tz, weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(now);
-  return { texto: hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches", fecha: fecha.charAt(0).toUpperCase() + fecha.slice(1) };
+  const mes = new Intl.DateTimeFormat("es-MX", { timeZone: tz, month: "long" }).format(now);
+  return { texto: hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches", fecha: fecha.charAt(0).toUpperCase() + fecha.slice(1), mes };
 }
 
 function hace(iso: string): string {
@@ -91,7 +92,7 @@ export default async function InicioPage() {
   const { role, sucursal, username } = session.user;
   const coord = role === "coord";
   const data = await getInicio({ role, sucursal });
-  const { texto, fecha } = saludo();
+  const { texto, fecha, mes } = saludo();
   const rep = data.reporteMes;
   const m = rep.metrics;
   const c = rep.comparativo?.metrics;
@@ -122,6 +123,7 @@ export default async function InicioPage() {
           <p className="text-sm text-slate-500">
             {fecha} · {coord ? "Todas las sucursales" : `Sucursal ${SUCURSAL_LABELS[sucursal!]}`}
           </p>
+          <p className="text-xs text-slate-400">Solo se muestran los leads de {mes} (el mes en curso).</p>
         </div>
         {coord && (
           <Link href="/leads/new" className="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark">
@@ -156,11 +158,11 @@ export default async function InicioPage() {
             total={sinAtender.total}
             detalle={sinAtender.atrasados > 0 ? `${sinAtender.atrasados} con más de 24 h` : "Leads nuevos sin primer contacto"}
             tono={sinAtender.atrasados > 0 ? "urgente" : sinAtender.total > 0 ? "pendiente" : "listo"}
-            href="/leads?mes=todos"
+            href="/leads"
             enlace="Ver en Leads"
           >
             {coord ? (
-              <ul className="divide-y divide-slate-100">{sinAtender.porSucursal.map((s) => filaSucursal(s, `/leads?sucursal=${s.sucursal}&mes=todos`, "sin atender"))}</ul>
+              <ul className="divide-y divide-slate-100">{sinAtender.porSucursal.map((s) => filaSucursal(s, `/leads?sucursal=${s.sucursal}`, "sin atender"))}</ul>
             ) : (
               <ul className="divide-y divide-slate-100">
                 {sinAtender.items.slice(0, 6).map((l) => (
@@ -298,9 +300,9 @@ export default async function InicioPage() {
             </Card>
           )}
 
-          <Card title="Ventas de los últimos 7 días">
+          <Card title="Ventas cerradas este mes">
             {data.ventasRecientes.length === 0 ? (
-              <p className="py-6 text-center text-sm text-slate-400">Aún no hay ventas cerradas esta semana.</p>
+              <p className="py-6 text-center text-sm text-slate-400">Aún no hay ventas cerradas este mes.</p>
             ) : (
               <ul className="divide-y divide-slate-100">
                 {data.ventasRecientes.map((v) => (

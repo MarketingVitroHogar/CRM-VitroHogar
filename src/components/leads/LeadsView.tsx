@@ -47,7 +47,7 @@ export function LeadsView({ role }: { role: Role }) {
     qEnPeriodo: false,
   }));
 
-  // "Por asignar": leads abiertos sin asesor, de todas las fechas (se ignora el periodo).
+  // "Por asignar": leads abiertos sin asesor del mes en curso (se ignora el periodo elegido).
   const [soloPorAsignar, setSoloPorAsignar] = useState(() => searchParams.get("sinAsesor") === "1");
   // Si ya estás en Leads y tocas una sucursal en la campana, los filtros se actualizan.
   const urlKey = searchParams.toString();
@@ -95,7 +95,8 @@ export function LeadsView({ role }: { role: Role }) {
       }
       const params = new URLSearchParams();
       // El rango se calcula al momento de pedir (así "Hoy" siempre es el día actual).
-      const rango = soloPorAsignar ? null : rangoDe(filters.periodo);
+      // "Por asignar" siempre es del mes en curso (igual que Inicio y la campana).
+      const rango = rangoDe(soloPorAsignar ? PERIODO_POR_DEFECTO : filters.periodo);
       if (rango) {
         params.set("desde", rango.from);
         params.set("hasta", rango.to);
@@ -127,7 +128,8 @@ export function LeadsView({ role }: { role: Role }) {
   // Cuántos leads siguen sin asesor (para el aviso de arriba).
   const fetchPorAsignar = useCallback(async () => {
     try {
-      const res = await fetch("/api/leads?sinAsesor=1");
+      const rango = rangoDe(PERIODO_POR_DEFECTO);
+      const res = await fetch(`/api/leads?sinAsesor=1${rango ? `&desde=${rango.from}&hasta=${rango.to}` : ""}`);
       if (!res.ok) return;
       const data = await res.json();
       setPorAsignar(Array.isArray(data.leads) ? data.leads.length : 0);
@@ -207,7 +209,7 @@ export function LeadsView({ role }: { role: Role }) {
         <div className={clsx("flex flex-wrap items-center justify-between gap-2 rounded-lg border px-4 py-2.5", soloPorAsignar ? "border-brand bg-red-50" : "border-amber-300 bg-amber-50")}>
           <p className="text-sm font-medium text-slate-800">
             {soloPorAsignar
-              ? `Mostrando los ${leads.length} lead${leads.length === 1 ? "" : "s"} sin asesor (todas las fechas).`
+              ? `Mostrando los ${leads.length} lead${leads.length === 1 ? "" : "s"} sin asesor (de este mes).`
               : `${porAsignar} lead${porAsignar === 1 ? "" : "s"} por asignar a un asesor`}
           </p>
           <button

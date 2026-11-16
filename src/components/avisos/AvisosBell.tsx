@@ -157,7 +157,7 @@ export function AvisosBell({ role, username }: { role: Role; username: string })
                       key={s.sucursal}
                       onClick={() => {
                         setOpen(false);
-                        router.push(`/leads?sucursal=${s.sucursal}&mes=todos`);
+                        router.push(`/leads?sucursal=${s.sucursal}`);
                       }}
                       className="flex w-full items-center justify-between gap-3 border-b border-slate-100 px-4 py-2.5 text-left hover:bg-slate-50"
                     >
@@ -175,10 +175,10 @@ export function AvisosBell({ role, username }: { role: Role; username: string })
                 {/* Ventas cerradas */}
                 <div className="border-b border-t border-slate-100 bg-slate-50 px-4 py-2.5">
                   <p className="text-sm font-semibold text-slate-900">Ventas cerradas recientes</p>
-                  <p className="text-xs text-slate-500">Últimos 7 días</p>
+                  <p className="text-xs text-slate-500">Este mes</p>
                 </div>
                 {(data.ventas ?? []).length === 0 ? (
-                  <p className="px-4 py-5 text-center text-sm text-slate-400">Aún no hay ventas cerradas esta semana.</p>
+                  <p className="px-4 py-5 text-center text-sm text-slate-400">Aún no hay ventas cerradas este mes.</p>
                 ) : (
                   (data.ventas ?? []).map((v) => {
                     const nueva = new Date(v.cerradaAt).getTime() > vistasHasta;
