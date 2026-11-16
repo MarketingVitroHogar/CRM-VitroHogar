@@ -41,6 +41,19 @@ export function novedadesFor(role: Role): Novedad[] {
   return NOVEDADES.filter((n) => !n.roles || n.roles.includes(role));
 }
 
+/**
+ * Para Coordinación, el aviso sale en CADA entrada (aunque lo cierre o lo abra las veces que sea)
+ * hasta el 17 de noviembre de 2026 a las 12:00 h de México (UTC-6 → 18:00 UTC). Después vuelve a la
+ * regla normal: una sola vez por persona y versión.
+ */
+export const NOVEDADES_COORD_HASTA = new Date("2026-11-17T18:00:00.000Z");
+
+/** ¿Debe abrirse el aviso de Novedades automáticamente al entrar? */
+export function debeMostrarNovedades(role: Role, yaVisto: boolean, ahora: Date = new Date()): boolean {
+  if (!yaVisto) return true;
+  return role === "coord" && ahora.getTime() < NOVEDADES_COORD_HASTA.getTime();
+}
+
 export function openNovedades() {
   window.dispatchEvent(new CustomEvent(NOVEDADES_EVENT));
 }

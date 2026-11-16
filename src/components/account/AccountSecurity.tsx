@@ -6,7 +6,7 @@ import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import type { Role } from "@prisma/client";
 import { OPEN_CHANGE_PASSWORD_EVENT, PW_NOTICE_DISMISSED_KEY } from "@/lib/accountEvents";
-import { NOVEDADES_EVENT, novedadesFor, novedadesKey } from "@/lib/novedades";
+import { NOVEDADES_EVENT, debeMostrarNovedades, novedadesFor, novedadesKey } from "@/lib/novedades";
 
 const input =
   "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand";
@@ -29,7 +29,8 @@ export function AccountSecurity({ passwordChanged, role, username }: { passwordC
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Al entrar: primero las Novedades (una sola vez por persona y versión); después, el aviso de contraseña.
+  // Al entrar: primero las Novedades (una vez por persona y versión; Coordinación, en cada entrada hasta
+  // el 17-nov-2026 12:00 h); después, el aviso de contraseña.
   const maybeShowPasswordNotice = useCallback(() => {
     if (passwordChanged) return;
     try {
@@ -48,9 +49,9 @@ export function AccountSecurity({ passwordChanged, role, username }: { passwordC
       /* sin almacenamiento: se muestra */
     }
     // eslint-disable-next-line react-hooks/set-state-in-effect -- depende de almacenamiento del navegador (solo cliente)
-    if (!visto) setNovedades(true);
+    if (debeMostrarNovedades(role, visto)) setNovedades(true);
     else maybeShowPasswordNotice();
-  }, [username, maybeShowPasswordNotice]);
+  }, [role, username, maybeShowPasswordNotice]);
 
   useEffect(() => {
     const h = () => setNovedades(true); // desde el menú de usuario → "Novedades"
