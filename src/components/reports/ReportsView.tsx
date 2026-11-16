@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import type { Role } from "@prisma/client";
-import { DateRangePicker, defaultDateRange, type DateRangeValue } from "./DateRangePicker";
+import { PeriodoFilter } from "@/components/ui/PeriodoFilter";
+import { PERIODO_POR_DEFECTO, rangoDe, type PeriodoState } from "@/lib/periodos";
 import { MetricCard } from "./MetricCard";
 import { CanalBreakdownTable, type CanalRow } from "./CanalBreakdownTable";
 import { SucursalBreakdownTable, type SucursalRow } from "./SucursalBreakdownTable";
@@ -22,7 +23,7 @@ type ReportData = {
 };
 
 export function ReportsView({ role }: { role: Role }) {
-  const [range, setRange] = useState<DateRangeValue>(() => defaultDateRange());
+  const [periodo, setPeriodo] = useState<PeriodoState>(PERIODO_POR_DEFECTO);
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -32,6 +33,7 @@ export function ReportsView({ role }: { role: Role }) {
     async function fetchReport() {
       setLoading(true);
       const params = new URLSearchParams();
+      const range = rangoDe(periodo); // se calcula al pedir: "Hoy" siempre es el día actual
       if (range) {
         params.set("from", range.from);
         params.set("to", range.to);
@@ -48,7 +50,7 @@ export function ReportsView({ role }: { role: Role }) {
     return () => {
       ignore = true;
     };
-  }, [range]);
+  }, [periodo]);
 
   if (loading && !data) {
     return <p className="text-sm text-slate-500">Cargando…</p>;
@@ -61,7 +63,7 @@ export function ReportsView({ role }: { role: Role }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <DateRangePicker value={range} onChange={setRange} />
+      <PeriodoFilter value={periodo} onChange={setPeriodo} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         <MetricCard label="Leads totales" value={String(metrics.totalLeads)} hint="por fecha de ingreso" />

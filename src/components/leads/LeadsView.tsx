@@ -12,6 +12,7 @@ import { LeadCard } from "./LeadCard";
 import { LeadsKanban } from "./LeadsKanban";
 import { LeadsTable } from "./LeadsTable";
 import { VISTA_STORAGE_KEY, type LeadsVista } from "@/lib/kanban";
+import { PERIODO_POR_DEFECTO, periodoDeUrl, rangoDe, textoRango } from "@/lib/periodos";
 import type { LeadDTO } from "@/lib/types";
 
 const LEADS_PER_PAGE = 15; // lista y tarjetas
@@ -22,16 +23,13 @@ const VISTAS: { key: LeadsVista; label: string }[] = [
   { key: "tarjetas", label: "Tarjetas" },
 ];
 
-function currentMonthValue(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-}
-
 /** Filtros que vienen en la dirección (p. ej. desde la campana de Coordinación: /leads?sucursal=COLON&mes=todos). */
-function filtersFromUrl(sp: URLSearchParams, role: Role): Pick<LeadFilterState, "mes" | "sucursal"> {
+function filtersFromUrl(sp: URLSearchParams, role: Role): Pick<LeadFilterState, "periodo" | "sucursal"> {
   const suc = sp.get("sucursal");
+  // mes=todos (campana) o periodo=hoy|ayer|semana|mes|todo…; sin nada → "Este mes".
+  const periodo = periodoDeUrl(sp.get("periodo")) ?? (sp.get("mes") === "todos" ? periodoDeUrl("todo") : null) ?? PERIODO_POR_DEFECTO;
   return {
-    mes: sp.get("mes") === "todos" ? "" : currentMonthValue(),
+    periodo,
     // Solo Coordinación elige sucursal; el gerente siempre queda limitado a la suya en el servidor.
     sucursal: role === "coord" && suc && (SUCURSALES as string[]).includes(suc) ? suc : "",
   };
@@ -44,6 +42,7 @@ export function LeadsView({ role }: { role: Role }) {
     estado: "",
     orden: "desc",
     q: "",
+    qEnPeriodo: false,
   }));
 
   // Si ya estás en Leads y tocas una sucursal en la campana, los filtros se actualizan.
@@ -87,10 +86,15 @@ export function LeadsView({ role }: { role: Role }) {
         setError(null);
       }
       const params = new URLSearchParams();
+      // El rango se calcula al momento de pedir (así "Hoy" siempre es el día actual).
+      const rango = rangoDe(filters.periodo);
+      if (rango) {
+        params.set("desde", rango.from);
+        params.set("hasta", rango.to);
+      }
       if (filters.q) {
         params.set("q", filters.q);
-      } else if (filters.mes) {
-        params.set("mes", filters.mes);
+        if (filters.qEnPeriodo) params.set("qEnPeriodo", "1");
       }
       // En Kanban las columnas son los estados: el filtro de estado no aplica.
       if (filters.estado && vista !== "kanban") params.set("estado", filters.estado);
@@ -137,7 +141,12 @@ export function LeadsView({ role }: { role: Role }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <LeadSearchBox value={filters.q} onSearch={(q) => setFilters((prev) => ({ ...prev, q }))} />
+        <LeadSearchBox
+          value={filters.q}
+          onSearch={(q) => setFilters((prev) => ({ ...prev, q }))}
+          enPeriodo={filters.qEnPeriodo}
+          onEnPeriodoChange={(v) => setFilters((prev) => ({ ...prev, qEnPeriodo: v }))}
+        />
         {role === "coord" && (
           <Link href="/leads/new" className="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark">
             + Nuevo lead
@@ -162,8 +171,8 @@ export function LeadsView({ role }: { role: Role }) {
       </div>
 
       {filters.q && (
-        <p className="-mt-2 text-xs text-slate-400">
-          Buscando &quot;{filters.q}&quot; en todos los meses — el filtro de mes no aplica mientras hay una búsqueda activa.
+        <p className="-mt-2 text-xs text-slate-500">
+          Buscando &quot;{filters.q}&quot; {filters.qEnPeriodo ? `solo en el periodo elegido (${textoRango(rangoDe(filters.periodo))})` : "en todos los periodos"}.
         </p>
       )}
 

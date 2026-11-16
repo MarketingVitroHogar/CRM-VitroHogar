@@ -94,3 +94,10 @@ npx prisma studio  # explorador visual de la base de datos
 - **Captura automática**: un servicio externo (Zapier, Make, formulario de Meta, etc.) puede crear leads con `POST /api/intake/leads`, enviando la clave en la cabecera `x-api-key` (o `Authorization: Bearer`). Cuerpo: `{ "nombre", "telefono", "sucursal", "fuente", "interes"?, "notas"? }`. El lead entra como "Nuevo" y sin asesor, aparece en la campana y evita duplicados (mismo teléfono y sucursal en 14 días). Requiere definir `INTAKE_API_KEY` (24+ caracteres) en Vercel; sin ella la ruta responde 503.
 
 Pruebas: con servidor y base locales de prueba, `node scripts/verify-uso-diario.mjs`.
+
+## Filtro por periodo y búsqueda de leads
+
+- **Periodo** (Leads y Reportes, para todos los usuarios): botones **Hoy · Ayer · Esta semana · Este mes · Personalizado** (desde/hasta) y "Más periodos…" (semana pasada, últimos 7/14/30 días, mes pasado, todo el tiempo). En Leads filtra por fecha de ingreso; en Reportes, igual que antes (ingreso para leads, cierre para ventas). La semana empieza en lunes. Se calcula al momento: "Hoy" siempre es el día actual. API: `GET /api/leads?desde=AAAA-MM-DD&hasta=AAAA-MM-DD` (ambos incluidos; `?mes=AAAA-MM` sigue funcionando).
+- **Búsqueda**: busca mientras escribes, sin importar mayúsculas ni acentos, por nombre, teléfono (con o sin espacios/guiones), interés, asesor y folios. Varias palabras = todas deben aparecer. Por defecto busca en todos los periodos; la casilla "Buscar solo dentro del periodo elegido" la limita (`&qEnPeriodo=1`).
+
+Pruebas: con servidor y base locales de prueba, `node scripts/verify-busqueda.mjs`.

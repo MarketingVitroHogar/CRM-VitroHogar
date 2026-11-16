@@ -11,7 +11,9 @@ import {
   isValidResponsableFor,
   resolveFechaCierre,
 } from "@/lib/leadPolicy";
-import { monthRangeUTC } from "@/lib/dateOnly";
+import { dayRangeUTC, monthRangeUTC } from "@/lib/dateOnly";
+import { searchLeadIds } from "@/lib/leadSearch";
+import { isDateStr } from "@/lib/periodos";
 import { Sucursal } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
@@ -19,11 +21,18 @@ export async function GET(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
-  const month = searchParams.get("mes"); // YYYY-MM, filters by fecha (ingreso)
+  const month = searchParams.get("mes"); // YYYY-MM (se conserva por compatibilidad)
+  const desde = searchParams.get("desde"); // YYYY-MM-DD (incluido) — fecha de ingreso
+  const hasta = searchParams.get("hasta"); // YYYY-MM-DD (incluido)
   const estado = searchParams.get("estado");
   const sucursalParam = searchParams.get("sucursal");
   const orden = searchParams.get("orden") === "asc" ? "asc" : "desc";
   const q = searchParams.get("q")?.trim();
+  const qEnPeriodo = searchParams.get("qEnPeriodo") === "1"; // buscar solo dentro del periodo elegido
+
+  if ((desde && !isDateStr(desde)) || (hasta && !isDateStr(hasta)) || (!!desde !== !!hasta)) {
+    return NextResponse.json({ error: "Periodo inválido: usa desde y hasta con formato AAAA-MM-DD" }, { status: 400 });
+  }
 
   const where: Record<string, unknown> = {};
 
@@ -37,17 +46,28 @@ export async function GET(req: NextRequest) {
 
   if (estado) where.estado = estado;
 
-  // A search query intentionally ignores the mes filter — looking up a
-  // specific customer by name/phone shouldn't require first guessing which
-  // month they came in.
+  // Por defecto, una búsqueda ignora el periodo: encontrar a un cliente por nombre o teléfono
+  // no debe obligar a adivinar cuándo llegó. Con qEnPeriodo=1 se busca solo dentro del periodo.
+  const aplicaPeriodo = !q || qEnPeriodo;
+  if (aplicaPeriodo) {
+    if (desde && hasta) {
+      const { start, end } = dayRangeUTC(desde, hasta);
+      where.fecha = { gte: start, lt: end };
+    } else if (month && /^\d{4}-\d{2}$/.test(month)) {
+      const { start, end } = monthRangeUTC(month);
+      where.fecha = { gte: start, lt: end };
+    }
+  }
+
   if (q) {
-    where.OR = [
-      { nombre: { contains: q, mode: "insensitive" } },
-      { telefono: { contains: q } },
-    ];
-  } else if (month) {
-    const { start, end } = monthRangeUTC(month);
-    where.fecha = { gte: start, lt: end };
+    // Búsqueda sin acentos, por varias palabras, por dígitos del teléfono y en más campos (ver leadSearch.ts).
+    const candidates = await prisma.lead.findMany({
+      where,
+      select: { id: true, nombre: true, telefono: true, interes: true, asesor: true, folioCotizacion: true, folioFactura: true },
+    });
+    const ids = searchLeadIds(candidates, q);
+    const leads = ids.length ? await prisma.lead.findMany({ where: { id: { in: ids } }, orderBy: [{ fecha: orden }, { createdAt: orden }] }) : [];
+    return NextResponse.json({ leads, count: leads.length });
   }
 
   const leads = await prisma.lead.findMany({
