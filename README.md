@@ -101,3 +101,15 @@ Pruebas: con servidor y base locales de prueba, `node scripts/verify-uso-diario.
 - **Búsqueda**: busca mientras escribes, sin importar mayúsculas ni acentos, por nombre, teléfono (con o sin espacios/guiones), interés, asesor y folios. Varias palabras = todas deben aparecer. Por defecto busca en todos los periodos; la casilla "Buscar solo dentro del periodo elegido" la limita (`&qEnPeriodo=1`).
 
 Pruebas: con servidor y base locales de prueba, `node scripts/verify-busqueda.mjs`.
+
+## Reportes (mejoras)
+
+- **Comparación con el periodo anterior** de la misma duración (▲/▼ en cada indicador; en "Sin seguimiento a tiempo" bajar es lo bueno). Con "Todo el tiempo" no se compara.
+- **Ticket promedio** (total vendido ÷ ventas).
+- **Gráfica de leads y ventas** por día (hasta ~35 días), por semana o por mes según el periodo. Leads por fecha de ingreso; ventas por fecha de cierre.
+- **Embudo** con los 7 estados del CRM y **canales** con los 7 canales de llegada (Facebook, Instagram, TikTok, WhatsApp, Sitio web, Referido y Otro): siempre salen todos, aunque estén en cero.
+- **Desempeño por asesor** (leads, ventas, monto y conversión); el gerente solo ve los de su sucursal.
+- **Exportar a Excel** (`GET /api/reports/export?from=&to=`: hojas Resumen, Tendencia, Por canal, Por sucursal, Por asesor y Embudo) e **Imprimir / PDF**.
+- Conversión = ventas ÷ (ventas + perdidos) cerrados en el periodo (sin cambios).
+
+Pruebas: con servidor y base locales de prueba, `node scripts/verify-reportes.mjs`.
