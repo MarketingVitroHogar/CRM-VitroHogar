@@ -33,11 +33,13 @@ export function LeadsKanban({
   role,
   setLeads,
   reload,
+  onAssign,
 }: {
   leads: LeadDTO[];
   role: Role;
   setLeads: React.Dispatch<React.SetStateAction<LeadDTO[]>>;
   reload: () => Promise<void>;
+  onAssign: (lead: LeadDTO) => void;
 }) {
   const { toast, toastNode } = useToast();
   const [dragId, setDragId] = useState<string | null>(null);
@@ -191,9 +193,21 @@ export function LeadsKanban({
                       )}
                       <div className="mt-2 flex items-center justify-between gap-2 border-t border-slate-100 pt-2 text-[11px] text-slate-500">
                         <span>{l.proximoSeguimiento && !["VENTA", "PERDIDO"].includes(l.estado) ? `Seguimiento: ${formatDateOnly(l.proximoSeguimiento, "d MMM")}` : `Ingreso: ${formatDateOnly(l.fecha, "d MMM")}`}</span>
-                        <span className="truncate" title={l.asesor ?? "Sin asesor"}>
-                          {l.asesor ? l.asesor.split(" ").slice(0, 2).join(" ") : "Sin asesor"}
-                        </span>
+                        {l.asesor ? (
+                          <span className="truncate" title={l.asesor}>
+                            {l.asesor.split(" ").slice(0, 2).join(" ")}
+                          </span>
+                        ) : l.estado === "VENTA" || l.estado === "PERDIDO" ? (
+                          <span>Sin asesor</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => onAssign(l)}
+                            className="min-h-8 shrink-0 rounded-md bg-brand px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-brand-dark"
+                          >
+                            Asignar asesor
+                          </button>
+                        )}
                       </div>
                       {/* En celular no se arrastra bien: selector grande para mover de columna. */}
                       <label className="mt-2 block md:hidden">

@@ -28,9 +28,14 @@ const nullableDateInput = z
 
 // Full schema — used by coord for create, and as the base for import.
 export const LeadCreateSchema = z.object({
-  fecha: dateInput,
+  // Sin fecha, el lead entra con la fecha de hoy (alta rápida).
+  fecha: dateInput.optional(),
   nombre: z.string().trim().min(1, "Nombre requerido"),
-  telefono: z.string().trim().min(1, "Teléfono requerido"),
+  telefono: z
+    .string()
+    .trim()
+    .min(1, "Teléfono requerido")
+    .refine((v) => v.replace(/[^0-9]/g, "").length >= 10, "El teléfono debe tener al menos 10 dígitos"),
   sucursal: z.enum(SUCURSALES as [string, ...string[]]),
   interes: z.string().trim().default(""),
   fuente: z.enum(FUENTES as [string, ...string[]], { error: "Canal inválido: elige Facebook, WhatsApp, Instagram, TikTok o Tienda en línea" }),

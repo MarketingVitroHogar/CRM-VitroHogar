@@ -16,11 +16,13 @@ export function LeadCard({
   role,
   showSucursal,
   onDelete,
+  onAssign,
 }: {
   lead: LeadDTO;
   role: Role;
   showSucursal: boolean;
   onDelete: (id: string) => void;
+  onAssign: (lead: LeadDTO) => void;
 }) {
   const overdue = isOverdue(
     {
@@ -71,7 +73,7 @@ export function LeadCard({
         </div>
         <div>
           <dt className="text-xs text-slate-400">Asesor asignado</dt>
-          <dd>{lead.asesor || "—"}</dd>
+          <dd>{lead.asesor || "Sin asignar"}</dd>
         </div>
         <div className="col-span-2 sm:col-span-3">
           <dt className="text-xs text-slate-400">Interés</dt>
@@ -115,7 +117,12 @@ export function LeadCard({
         )}
       </dl>
 
-      <div className="flex gap-2 border-t border-slate-100 pt-3">
+      <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+        {!lead.asesor && lead.estado !== "VENTA" && lead.estado !== "PERDIDO" && (
+          <button onClick={() => onAssign(lead)} className="rounded-md bg-brand px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-dark">
+            Asignar asesor
+          </button>
+        )}
         <Link
           href={`/leads/${lead.id}`}
           className="rounded-md bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-200"

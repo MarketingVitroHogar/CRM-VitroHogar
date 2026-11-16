@@ -10,10 +10,11 @@ import { formatDateOnly } from "@/lib/dateOnly";
 import type { LeadDTO } from "@/lib/types";
 
 const money = (v: string | null) => (v == null ? "" : "$" + Math.round(Number(v)).toLocaleString("es-MX"));
+const cerrado = (l: LeadDTO) => l.estado === "VENTA" || l.estado === "PERDIDO";
 const late = (l: LeadDTO) => isOverdue({ estado: l.estado, proximoSeguimiento: l.proximoSeguimiento ? new Date(l.proximoSeguimiento) : null, createdAt: new Date(l.createdAt) });
 
 /** Vista de lista: una fila por lead, con el nombre y el teléfono debajo. */
-export function LeadsTable({ leads, role, onDelete }: { leads: LeadDTO[]; role: Role; onDelete: (id: string) => void }) {
+export function LeadsTable({ leads, role, onDelete, onAssign }: { leads: LeadDTO[]; role: Role; onDelete: (id: string) => void; onAssign: (lead: LeadDTO) => void }) {
   const coord = role === "coord";
   return (
     <>
@@ -52,7 +53,15 @@ export function LeadsTable({ leads, role, onDelete }: { leads: LeadDTO[]; role: 
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-slate-600">{l.proximoSeguimiento && !["VENTA", "PERDIDO"].includes(l.estado) ? formatDateOnly(l.proximoSeguimiento) : "—"}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-slate-600" title={l.asesor ?? ""}>
-                  {l.asesor ? l.asesor.split(" ").slice(0, 2).join(" ") : "—"}
+                  {l.asesor ? (
+                    l.asesor.split(" ").slice(0, 2).join(" ")
+                  ) : cerrado(l) ? (
+                    "—"
+                  ) : (
+                    <button onClick={() => onAssign(l)} className="rounded-md bg-brand px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand-dark">
+                      Asignar
+                    </button>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-right font-semibold">{money(l.montoVenta)}</td>
                 <td className="px-4 py-3">
@@ -76,8 +85,8 @@ export function LeadsTable({ leads, role, onDelete }: { leads: LeadDTO[]; role: 
       {/* Lista en celular: tarjetas compactas */}
       <ul className="flex flex-col gap-2 md:hidden">
         {leads.map((l) => (
-          <li key={l.id}>
-            <Link href={`/leads/${l.id}`} className="block rounded-xl border border-slate-200 bg-white p-3">
+          <li key={l.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <Link href={`/leads/${l.id}`} className="block p-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-slate-900">{l.nombre}</p>
@@ -97,6 +106,11 @@ export function LeadsTable({ leads, role, onDelete }: { leads: LeadDTO[]; role: 
                 </span>
               </div>
             </Link>
+            {!l.asesor && !cerrado(l) && (
+              <button onClick={() => onAssign(l)} className="min-h-11 w-full border-t border-slate-100 bg-red-50 text-sm font-semibold text-brand hover:bg-red-100">
+                Asignar asesor
+              </button>
+            )}
           </li>
         ))}
       </ul>

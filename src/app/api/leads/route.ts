@@ -11,7 +11,7 @@ import {
   isValidResponsableFor,
   resolveFechaCierre,
 } from "@/lib/leadPolicy";
-import { dayRangeUTC, monthRangeUTC } from "@/lib/dateOnly";
+import { dayRangeUTC, mexicoTodayAsUTCDate, monthRangeUTC } from "@/lib/dateOnly";
 import { searchLeadIds } from "@/lib/leadSearch";
 import { isDateStr } from "@/lib/periodos";
 import { Sucursal } from "@prisma/client";
@@ -45,6 +45,12 @@ export async function GET(req: NextRequest) {
   }
 
   if (estado) where.estado = estado;
+
+  // "Por asignar": leads abiertos que todavía no tienen asesor.
+  if (searchParams.get("sinAsesor") === "1") {
+    where.asesor = null;
+    if (!estado) where.estado = { notIn: ["VENTA", "PERDIDO"] };
+  }
 
   // Por defecto, una búsqueda ignora el periodo: encontrar a un cliente por nombre o teléfono
   // no debe obligar a adivinar cuándo llegó. Con qEnPeriodo=1 se busca solo dentro del periodo.
@@ -115,7 +121,7 @@ export async function POST(req: NextRequest) {
 
     const lead = await prisma.lead.create({
       data: {
-        fecha: data.fecha,
+        fecha: data.fecha ?? mexicoTodayAsUTCDate(),
         nombre: data.nombre,
         telefono: data.telefono,
         sucursal,

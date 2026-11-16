@@ -29,7 +29,7 @@ export async function GET() {
     },
     orderBy: { createdAt: "desc" },
     take: 1000,
-    select: { id: true, nombre: true, telefono: true, interes: true, sucursal: true, fuente: true, createdAt: true, proximoSeguimiento: true, estado: true },
+    select: { id: true, nombre: true, telefono: true, interes: true, sucursal: true, fuente: true, asesor: true, createdAt: true, proximoSeguimiento: true, estado: true },
   });
 
   const now = new Date();
@@ -47,6 +47,7 @@ export async function GET() {
         interes: r.interes,
         sucursal: r.sucursal,
         fuente: r.fuente,
+        asesor: r.asesor,
         createdAt: r.createdAt.toISOString(),
         atrasado: r.atrasado,
       })),

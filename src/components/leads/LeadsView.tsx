@@ -11,6 +11,8 @@ import { LeadSearchBox } from "./LeadSearchBox";
 import { LeadCard } from "./LeadCard";
 import { LeadsKanban } from "./LeadsKanban";
 import { LeadsTable } from "./LeadsTable";
+import { AsignarDialog, LEADS_CHANGED_EVENT, type AsignarResult } from "./AsignarDialog";
+import { useToast } from "@/components/ui/Toast";
 import { VISTA_STORAGE_KEY, type LeadsVista } from "@/lib/kanban";
 import { PERIODO_POR_DEFECTO, periodoDeUrl, rangoDe, textoRango } from "@/lib/periodos";
 import type { LeadDTO } from "@/lib/types";
@@ -57,6 +59,11 @@ export function LeadsView({ role }: { role: Role }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const { toast, toastNode } = useToast();
+  // "Por asignar": leads abiertos sin asesor, de todas las fechas (se ignora el periodo).
+  const [soloPorAsignar, setSoloPorAsignar] = useState(false);
+  const [porAsignar, setPorAsignar] = useState(0);
+  const [asignando, setAsignando] = useState<LeadDTO | null>(null);
 
   // Cada persona recupera la vista que eligió la última vez (por defecto, Kanban).
   useEffect(() => {
@@ -87,17 +94,18 @@ export function LeadsView({ role }: { role: Role }) {
       }
       const params = new URLSearchParams();
       // El rango se calcula al momento de pedir (así "Hoy" siempre es el día actual).
-      const rango = rangoDe(filters.periodo);
+      const rango = soloPorAsignar ? null : rangoDe(filters.periodo);
       if (rango) {
         params.set("desde", rango.from);
         params.set("hasta", rango.to);
       }
+      if (soloPorAsignar) params.set("sinAsesor", "1");
       if (filters.q) {
         params.set("q", filters.q);
         if (filters.qEnPeriodo) params.set("qEnPeriodo", "1");
       }
       // En Kanban las columnas son los estados: el filtro de estado no aplica.
-      if (filters.estado && vista !== "kanban") params.set("estado", filters.estado);
+      if (filters.estado && vista !== "kanban" && !soloPorAsignar) params.set("estado", filters.estado);
       if (role === "coord" && filters.sucursal) params.set("sucursal", filters.sucursal);
       params.set("orden", filters.orden);
 
@@ -112,8 +120,47 @@ export function LeadsView({ role }: { role: Role }) {
         if (!quiet) setLoading(false);
       }
     },
-    [filters, role, vista]
+    [filters, role, vista, soloPorAsignar]
   );
+
+  // Cuántos leads siguen sin asesor (para el aviso de arriba).
+  const fetchPorAsignar = useCallback(async () => {
+    try {
+      const res = await fetch("/api/leads?sinAsesor=1");
+      if (!res.ok) return;
+      const data = await res.json();
+      setPorAsignar(Array.isArray(data.leads) ? data.leads.length : 0);
+    } catch {
+      /* se queda el número anterior */
+    }
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- carga inicial del conteo
+    fetchPorAsignar();
+  }, [fetchPorAsignar]);
+
+  // Si se asigna un lead desde otra pantalla (la campana), esta lista se actualiza sola.
+  useEffect(() => {
+    const onChanged = () => {
+      void fetchLeads(true);
+      void fetchPorAsignar();
+    };
+    window.addEventListener(LEADS_CHANGED_EVENT, onChanged);
+    return () => window.removeEventListener(LEADS_CHANGED_EVENT, onChanged);
+  }, [fetchLeads, fetchPorAsignar]);
+
+  function handleAssigned(r: AsignarResult) {
+    const who = asignando?.nombre ?? "El lead";
+    setAsignando(null);
+    // Se ve al instante; si estamos en "Por asignar", el lead sale de la lista.
+    setLeads((prev) =>
+      soloPorAsignar ? prev.filter((l) => l.id !== r.id) : prev.map((l) => (l.id === r.id ? { ...l, asesor: r.asesor, ...(r.estado ? { estado: r.estado } : {}) } : l))
+    );
+    toast(`✓ ${who} → ${r.asesor}`);
+    void fetchLeads(true);
+    void fetchPorAsignar();
+  }
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- carga de datos al cambiar filtros o vista
@@ -154,8 +201,29 @@ export function LeadsView({ role }: { role: Role }) {
         )}
       </div>
 
+      {/* Aviso "Por asignar": lo primero que debe ver el gerente */}
+      {(porAsignar > 0 || soloPorAsignar) && (
+        <div className={clsx("flex flex-wrap items-center justify-between gap-2 rounded-lg border px-4 py-2.5", soloPorAsignar ? "border-brand bg-red-50" : "border-amber-300 bg-amber-50")}>
+          <p className="text-sm font-medium text-slate-800">
+            {soloPorAsignar
+              ? `Mostrando los ${leads.length} lead${leads.length === 1 ? "" : "s"} sin asesor (todas las fechas).`
+              : `${porAsignar} lead${porAsignar === 1 ? "" : "s"} por asignar a un asesor`}
+          </p>
+          <button
+            onClick={() => {
+              setSoloPorAsignar((v) => !v);
+              setPage(1);
+            }}
+            className="min-h-9 rounded-md bg-brand px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-brand-dark"
+          >
+            {soloPorAsignar ? "Ver todos los leads" : "Ver y asignar"}
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <LeadFilters value={filters} onChange={setFilters} showSucursal={role === "coord"} showEstado={vista !== "kanban"} />
+        {/* En "Por asignar" el periodo y el estado no aplican, así que se ocultan para no confundir. */}
+        {soloPorAsignar ? <span /> : <LeadFilters value={filters} onChange={setFilters} showSucursal={role === "coord"} showEstado={vista !== "kanban"} />}
         <div className="inline-flex rounded-lg border border-slate-300 bg-white p-0.5" role="group" aria-label="Tipo de vista">
           {VISTAS.map((v) => (
             <button
@@ -189,15 +257,15 @@ export function LeadsView({ role }: { role: Role }) {
       )}
 
       {!loading && leads.length > 0 && vista === "kanban" && (
-        <LeadsKanban leads={leads} role={role} setLeads={setLeads} reload={() => fetchLeads(true)} />
+        <LeadsKanban leads={leads} role={role} setLeads={setLeads} reload={() => Promise.all([fetchLeads(true), fetchPorAsignar()]).then(() => undefined)} onAssign={setAsignando} />
       )}
 
-      {!loading && leads.length > 0 && vista === "lista" && <LeadsTable leads={pageLeads} role={role} onDelete={handleDelete} />}
+      {!loading && leads.length > 0 && vista === "lista" && <LeadsTable leads={pageLeads} role={role} onDelete={handleDelete} onAssign={setAsignando} />}
 
       {!loading && leads.length > 0 && vista === "tarjetas" && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {pageLeads.map((lead) => (
-            <LeadCard key={lead.id} lead={lead} role={role} showSucursal={role === "coord"} onDelete={handleDelete} />
+            <LeadCard key={lead.id} lead={lead} role={role} showSucursal={role === "coord"} onDelete={handleDelete} onAssign={setAsignando} />
           ))}
         </div>
       )}
@@ -223,6 +291,9 @@ export function LeadsView({ role }: { role: Role }) {
           </button>
         </div>
       )}
+
+      <AsignarDialog lead={asignando} onClose={() => setAsignando(null)} onDone={handleAssigned} />
+      {toastNode}
     </div>
   );
 }

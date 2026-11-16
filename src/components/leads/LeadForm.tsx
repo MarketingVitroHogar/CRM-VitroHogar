@@ -14,6 +14,7 @@ import {
   asesoresFor,
 } from "@/lib/catalogs";
 import { responsableOptionsFor, defaultResponsableFor } from "@/lib/leadPolicy";
+import { formatDateOnly } from "@/lib/dateOnly";
 import type { LeadDTO } from "@/lib/types";
 
 type FormValues = {
@@ -68,11 +69,10 @@ function defaultValuesFor(
   role: Role
 ): FormValues {
   const sucursal = lead?.sucursal ?? gerenteSucursal ?? SUCURSALES[0];
-  // A gerente can never leave/select "Nuevo" (only coord assigns it at
-  // creation), so if a gerente opens a still-"Nuevo" lead, default the form
-  // to "Contactado" — the natural first real transition — rather than a
-  // disabled value that would fail validation on an untouched save.
-  const estado = lead?.estado === "NUEVO" && role === "gerente" ? "CONTACTADO" : lead?.estado ?? "NUEVO";
+  // Un gerente no puede elegir "Nuevo" (solo Coordinación lo asigna al crear). Si abre un lead
+  // que sigue en "Nuevo", el estado queda "" = sin cambio: así puede, por ejemplo, solo asignar
+  // un asesor sin que el lead se marque como Contactado por accidente.
+  const estado = lead?.estado === "NUEVO" && role === "gerente" ? "" : lead?.estado ?? "NUEVO";
   return {
     fecha: lead ? toDateInputValue(lead.fecha) : todayDateInputValue(),
     nombre: lead?.nombre ?? "",
@@ -164,7 +164,7 @@ export function LeadForm({
     setSubmitting(true);
 
     const basePayload: Record<string, unknown> = {
-      estado: values.estado,
+      ...(values.estado ? { estado: values.estado } : {}),
       responsable: values.responsable,
       asesor: values.asesor || null,
       proximoSeguimiento: values.proximoSeguimiento || null,
@@ -222,6 +222,28 @@ export function LeadForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
+      {!canEditCoreFields && lead && (
+        <div className="rounded-lg bg-slate-50 p-4">
+          <p className="text-base font-semibold text-slate-900">{lead.nombre}</p>
+          <p className="mt-0.5 text-sm">
+            <a href={`tel:${lead.telefono.replace(/[^0-9+]/g, "")}`} className="font-medium text-brand underline">
+              {lead.telefono}
+            </a>
+          </p>
+          <p className="mt-2 text-sm text-slate-700">{lead.interes || "Sin interés indicado"}</p>
+          <p className="mt-2 text-xs text-slate-500">
+            {FUENTE_LABELS[lead.fuente as keyof typeof FUENTE_LABELS] ?? lead.fuente} · ingresó el {formatDateOnly(lead.fecha)} · {SUCURSAL_LABELS[lead.sucursal]}
+          </p>
+        </div>
+      )}
+
+      {!canEditCoreFields && lead && !lead.asesor && lead.estado !== "VENTA" && lead.estado !== "PERDIDO" && (
+        <p className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-900" role="status">
+          Este lead aún no tiene asesor. Elige uno en “Asesor asignado” y guarda.
+        </p>
+      )}
+
+      {canEditCoreFields && (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label className={labelClass}>Fecha de ingreso</label>
@@ -285,13 +307,15 @@ export function LeadForm({
           />
         </div>
       </div>
+      )}
 
-      <hr className="border-slate-200" />
+      {canEditCoreFields && <hr className="border-slate-200" />}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label className={labelClass}>Estado</label>
           <select className={inputClass} {...register("estado")}>
+            {!isCoord && lead?.estado === "NUEVO" && <option value="">Sin cambio (sigue en Nuevo)</option>}
             {ESTADOS.map((e) => (
               <option key={e} value={e} disabled={e === "NUEVO" && !isCoord}>
                 {ESTADO_LABELS[e]}
@@ -318,7 +342,7 @@ export function LeadForm({
 
         <div>
           <label className={labelClass}>Asesor asignado</label>
-          <select className={inputClass} {...register("asesor")}>
+          <select className={inputClass + (!isCoord && lead && !lead.asesor ? " border-amber-400 ring-1 ring-amber-300" : "")} {...register("asesor")}>
             <option value="">— Sin asignar —</option>
             {asesorOptions.map((a) => (
               <option key={a} value={a}>

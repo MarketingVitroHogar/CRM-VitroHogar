@@ -6,8 +6,9 @@ import clsx from "clsx";
 import type { Fuente, Role, Sucursal } from "@prisma/client";
 import { useToast } from "@/components/ui/Toast";
 import { FUENTE_LABELS, SUCURSAL_LABELS } from "@/lib/catalogs";
+import { AsignarDialog, type AsignarLead } from "@/components/leads/AsignarDialog";
 
-type Item = { id: string; nombre: string; telefono: string; interes: string; sucursal: Sucursal; fuente: Fuente; createdAt: string; atrasado: boolean };
+type Item = { id: string; nombre: string; telefono: string; interes: string; sucursal: Sucursal; fuente: Fuente; asesor?: string | null; createdAt: string; atrasado: boolean };
 type PorSucursal = { sucursal: Sucursal; total: number; atrasados: number };
 type Venta = { id: string; nombre: string; sucursal: Sucursal; monto: string | null; folioFactura: string | null; cerradaAt: string };
 type Data = { total: number; atrasados: number; items: Item[]; porSucursal?: PorSucursal[]; ventas?: Venta[] };
@@ -37,6 +38,7 @@ export function AvisosBell({ role, username }: { role: Role; username: string })
   const seen = useRef<Set<string> | null>(null);
   const seenSales = useRef<Set<string> | null>(null);
   const [open, setOpen] = useState(false);
+  const [asignando, setAsignando] = useState<AsignarLead | null>(null);
   const [data, setData] = useState<Data>({ total: 0, atrasados: 0, items: [] });
   // Hora (ms) hasta la que Coordinación ya vio las ventas cerradas. Se guarda en su navegador.
   const [vistasHasta, setVistasHasta] = useState<number>(() => Date.now());
@@ -225,27 +227,42 @@ export function AvisosBell({ role, username }: { role: Role; username: string })
                   <p className="px-4 py-8 text-center text-sm text-slate-400">No hay leads nuevos pendientes.</p>
                 ) : (
                   data.items.map((n) => (
-                    <button
-                      key={n.id}
-                      onClick={() => {
-                        setOpen(false);
-                        router.push(`/leads/${n.id}`);
-                      }}
-                      className="flex w-full items-start justify-between gap-3 border-b border-slate-100 px-4 py-3 text-left last:border-0 hover:bg-slate-50"
-                    >
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-semibold text-slate-900">{n.nombre}</span>
-                        <span className="block truncate text-xs text-slate-500">
-                          {n.telefono}
-                          {n.interes ? ` · ${n.interes}` : ""}
+                    <div key={n.id} className="flex items-stretch border-b border-slate-100 last:border-0">
+                      <button
+                        onClick={() => {
+                          setOpen(false);
+                          router.push(`/leads/${n.id}`);
+                        }}
+                        className="flex min-w-0 flex-1 items-start justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50"
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-semibold text-slate-900">{n.nombre}</span>
+                          <span className="block truncate text-xs text-slate-500">
+                            {n.telefono}
+                            {n.interes ? ` · ${n.interes}` : ""}
+                          </span>
+                          <span className="mt-0.5 block text-[11px] text-slate-400">
+                            {FUENTE_LABELS[n.fuente]}
+                            {n.asesor ? ` · Asesor: ${n.asesor.split(" ")[0]}` : ""}
+                          </span>
                         </span>
-                        <span className="mt-0.5 block text-[11px] text-slate-400">{FUENTE_LABELS[n.fuente]}</span>
-                      </span>
-                      <span className={clsx("shrink-0 text-xs", n.atrasado ? "font-semibold text-red-600" : "text-slate-400")}>
-                        hace {hace(n.createdAt)}
-                        {n.atrasado && <span className="block">sin atender</span>}
-                      </span>
-                    </button>
+                        <span className={clsx("shrink-0 text-xs", n.atrasado ? "font-semibold text-red-600" : "text-slate-400")}>
+                          hace {hace(n.createdAt)}
+                          {n.atrasado && <span className="block">sin atender</span>}
+                        </span>
+                      </button>
+                      {!n.asesor && (
+                        <button
+                          onClick={() => {
+                            setOpen(false);
+                            setAsignando({ id: n.id, nombre: n.nombre, interes: n.interes, sucursal: n.sucursal, estado: "NUEVO", asesor: null });
+                          }}
+                          className="m-2 shrink-0 self-center rounded-md bg-brand px-3 py-2 text-xs font-semibold text-white hover:bg-brand-dark"
+                        >
+                          Asignar
+                        </button>
+                      )}
+                    </div>
                   ))
                 )}
               </>
@@ -253,6 +270,16 @@ export function AvisosBell({ role, username }: { role: Role; username: string })
           </div>
         </div>
       )}
+      <AsignarDialog
+        lead={asignando}
+        onClose={() => setAsignando(null)}
+        onDone={(r) => {
+          toast(`✓ ${asignando?.nombre ?? "Lead"} → ${r.asesor}`);
+          setAsignando(null);
+          void load();
+          router.refresh();
+        }}
+      />
       {toastNode}
     </div>
   );
