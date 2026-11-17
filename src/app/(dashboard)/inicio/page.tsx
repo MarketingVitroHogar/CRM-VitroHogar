@@ -142,11 +142,11 @@ export default async function InicioPage() {
             total={sinAsignar.total}
             detalle={coord ? "Aún no tienen asesor" : "Elige qué asesor los atiende"}
             tono={sinAsignar.total > 0 ? "pendiente" : "listo"}
-            href="/leads?sinAsesor=1"
-            enlace={coord ? "Ver los leads sin asesor" : "Ver y asignar en Leads"}
+            href={coord ? undefined : "/leads?sinAsesor=1"}
+            enlace="Ver y asignar en Leads"
           >
             {coord ? (
-              <ul className="divide-y divide-slate-100">{sinAsignar.porSucursal.map((s) => filaSucursal(s, `/leads?sucursal=${s.sucursal}&sinAsesor=1`, "sin asesor"))}</ul>
+              <ul className="divide-y divide-slate-100">{sinAsignar.porSucursal.map((s) => filaSucursal(s, `/leads?sucursal=${s.sucursal}`, "sin asesor"))}</ul>
             ) : (
               <PorAsignarLista items={sinAsignar.items} total={sinAsignar.total} sucursal={sucursal!} />
             )}

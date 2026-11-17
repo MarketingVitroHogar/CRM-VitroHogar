@@ -48,14 +48,14 @@ export function LeadsView({ role }: { role: Role }) {
   }));
 
   // "Por asignar": leads abiertos sin asesor del mes en curso (se ignora el periodo elegido).
-  const [soloPorAsignar, setSoloPorAsignar] = useState(() => searchParams.get("sinAsesor") === "1");
+  const [soloPorAsignar, setSoloPorAsignar] = useState(() => role === "gerente" && searchParams.get("sinAsesor") === "1");
   // Si ya estás en Leads y tocas una sucursal en la campana, los filtros se actualizan.
   const urlKey = searchParams.toString();
   useEffect(() => {
     if (!urlKey) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- sincroniza los filtros con la dirección
     setFilters((f) => ({ ...f, ...filtersFromUrl(new URLSearchParams(urlKey), role), q: "" }));
-    setSoloPorAsignar(new URLSearchParams(urlKey).get("sinAsesor") === "1");
+    setSoloPorAsignar(role === "gerente" && new URLSearchParams(urlKey).get("sinAsesor") === "1");
   }, [urlKey, role]);
   const [vista, setVista] = useState<LeadsVista>("kanban");
   const [leads, setLeads] = useState<LeadDTO[]>([]);
@@ -125,8 +125,9 @@ export function LeadsView({ role }: { role: Role }) {
     [filters, role, vista, soloPorAsignar]
   );
 
-  // Cuántos leads siguen sin asesor (para el aviso de arriba).
+  // Cuántos leads siguen sin asesor (para el aviso de arriba). Solo el gerente asigna: Coordinación no ve este aviso.
   const fetchPorAsignar = useCallback(async () => {
+    if (role !== "gerente") return;
     try {
       const rango = rangoDe(PERIODO_POR_DEFECTO);
       const res = await fetch(`/api/leads?sinAsesor=1${rango ? `&desde=${rango.from}&hasta=${rango.to}` : ""}`);
@@ -136,7 +137,7 @@ export function LeadsView({ role }: { role: Role }) {
     } catch {
       /* se queda el número anterior */
     }
-  }, []);
+  }, [role]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- carga inicial del conteo

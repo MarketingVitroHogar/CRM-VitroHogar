@@ -89,6 +89,10 @@ const sinAsigC = (await coord.json("/api/leads?sinAsesor=1" + _mes)).body.leads.
   console.log("\n== Leads: filtro desde Inicio ==");
   const L = await coord.raw("/leads?sinAsesor=1");
   check("/leads?sinAsesor=1 carga", L.status === 200);
+  const htmlC = await (await coord.raw("/inicio")).text();
+  const htmlG = await (await blvd.raw("/inicio")).text();
+  check("Coordinación: Inicio ya no enlaza a «ver y asignar» (no asigna)", !htmlC.includes("sinAsesor=1") && !htmlC.includes("Ver y asignar"));
+  check("el gerente sí conserva el enlace «Ver y asignar en Leads»", htmlG.includes("sinAsesor=1") && htmlG.includes("Ver y asignar en Leads"));
 
   console.log(`\nResultado: ${pass} bien, ${fail} mal`);
   process.exit(fail ? 1 : 0);
