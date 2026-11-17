@@ -122,7 +122,7 @@ export const ASESORES_POR_SUCURSAL: Record<Sucursal, string[]> = {
     "José Armando Suárez Salazar",
     "José Luis Ureña Ovalle",
   ],
-  JESUS_MARIA: ["José Ignacio Galván Picón", "Raúl De Jesús De Luna Lugo"],
+  JESUS_MARIA: ["José Ignacio Galván Picón", "Jorge Luis Santana Vargas", "Silvina Martinez Santoyo"],
   GONZALEZ_GALLO: ["Sara Edelia Oregel Jara", "Yolanda Rios Reyes", "Lucía Adriana Salgado Rodríguez"],
   JUAN_PABLO: ["Lucio"],
   GUADALUPE: ["Junior Gamaliel Ramirez Rodriguez", "Mayra Elizabeth Lugo Najar", "Norma Del Carmen Gonzalez Garcia"],
