@@ -127,7 +127,7 @@ export const ASESORES_POR_SUCURSAL: Record<Sucursal, string[]> = {
   JUAN_PABLO: ["Lucio"],
   GUADALUPE: ["Junior Gamaliel Ramirez Rodriguez", "Mayra Elizabeth Lugo Najar", "Norma Del Carmen Gonzalez Garcia"],
   COLON: [], // pendiente: lista de asesores de Colón
-  TLI: ["Cristian", "Karen", "Estefania"],
+  TLI: ["Cristian", "Karen", "Paola"],
 };
 
 export function asesoresFor(sucursal: Sucursal): string[] {
