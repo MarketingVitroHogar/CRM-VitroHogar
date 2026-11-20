@@ -12,6 +12,7 @@ import { FUENTE_LABELS, SUCURSAL_LABELS, ESTADO_LABELS, GERENTE_ALLOWED_ESTADOS,
 import { KANBAN_COLUMNS, columnOf } from "@/lib/kanban";
 import { isOverdue } from "@/lib/leadPolicy";
 import { formatDateOnly } from "@/lib/dateOnly";
+import { clicSimple } from "@/lib/abrirEnPanel";
 import type { LeadDTO } from "@/lib/types";
 
 const PER_COLUMN = 40; // tarjetas visibles por columna (el resto con "Mostrar más")
@@ -34,12 +35,14 @@ export function LeadsKanban({
   setLeads,
   reload,
   onAssign,
+  onEdit,
 }: {
   leads: LeadDTO[];
   role: Role;
   setLeads: React.Dispatch<React.SetStateAction<LeadDTO[]>>;
   reload: () => Promise<void>;
   onAssign: (lead: LeadDTO) => void;
+  onEdit: (id: string) => void;
 }) {
   const { toast, toastNode } = useToast();
   const [dragId, setDragId] = useState<string | null>(null);
@@ -173,7 +176,16 @@ export function LeadsKanban({
                         dragId === l.id && "opacity-40"
                       )}
                     >
-                      <Link href={`/leads/${l.id}`} className="block">
+                      <Link
+                        href={`/leads/${l.id}`}
+                        onClick={(e) => {
+                          if (clicSimple(e)) {
+                            e.preventDefault();
+                            onEdit(l.id);
+                          }
+                        }}
+                        className="block"
+                      >
                         <h3 className="truncate text-sm font-bold leading-snug text-slate-900" title={l.nombre}>
                           {l.nombre}
                         </h3>

@@ -7,6 +7,7 @@ import { OverdueIndicator } from "./OverdueIndicator";
 import { FUENTE_LABELS, SUCURSAL_LABELS } from "@/lib/catalogs";
 import { isOverdue } from "@/lib/leadPolicy";
 import { formatDateOnly } from "@/lib/dateOnly";
+import { clicSimple } from "@/lib/abrirEnPanel";
 import type { LeadDTO } from "@/lib/types";
 
 const money = (v: string | null) => (v == null ? "" : "$" + Math.round(Number(v)).toLocaleString("es-MX"));
@@ -14,7 +15,14 @@ const cerrado = (l: LeadDTO) => l.estado === "VENTA" || l.estado === "PERDIDO";
 const late = (l: LeadDTO) => isOverdue({ estado: l.estado, proximoSeguimiento: l.proximoSeguimiento ? new Date(l.proximoSeguimiento) : null, createdAt: new Date(l.createdAt) });
 
 /** Vista de lista: una fila por lead, con el nombre y el teléfono debajo. */
-export function LeadsTable({ leads, role, onDelete, onAssign }: { leads: LeadDTO[]; role: Role; onDelete: (id: string) => void; onAssign: (lead: LeadDTO) => void }) {
+export function LeadsTable({ leads, role, onDelete, onAssign, onEdit }: { leads: LeadDTO[]; role: Role; onDelete: (id: string) => void; onAssign: (lead: LeadDTO) => void; onEdit: (id: string) => void }) {
+  // Clic normal = panel lateral; Ctrl/Cmd/Shift/clic medio = ficha completa en otra pestaña.
+  const abrir = (e: React.MouseEvent, id: string) => {
+    if (clicSimple(e)) {
+      e.preventDefault();
+      onEdit(id);
+    }
+  };
   const coord = role === "coord";
   const gerente = role === "gerente"; // solo el gerente asigna asesor
   return (
@@ -41,7 +49,7 @@ export function LeadsTable({ leads, role, onDelete, onAssign }: { leads: LeadDTO
             {leads.map((l) => (
               <tr key={l.id} className="group hover:bg-slate-50">
                 <td className="px-2.5 py-2">
-                  <Link href={`/leads/${l.id}`} className="block max-w-[11rem] truncate font-semibold text-slate-900 hover:underline" title={l.nombre}>
+                  <Link href={`/leads/${l.id}`} onClick={(e) => abrir(e, l.id)} className="block max-w-[11rem] truncate font-semibold text-slate-900 hover:underline" title={l.nombre}>
                     {l.nombre}
                   </Link>
                   <span className="block text-xs text-slate-500">{l.telefono}</span>
@@ -88,6 +96,7 @@ export function LeadsTable({ leads, role, onDelete, onAssign }: { leads: LeadDTO
                   <div className="flex justify-end gap-1.5">
                     <Link
                       href={`/leads/${l.id}`}
+                      onClick={(e) => abrir(e, l.id)}
                       title="Editar"
                       aria-label={`Editar ${l.nombre}`}
                       className="grid h-8 w-8 place-items-center rounded-md bg-slate-100 text-slate-700 hover:bg-slate-200"
@@ -124,7 +133,7 @@ export function LeadsTable({ leads, role, onDelete, onAssign }: { leads: LeadDTO
       <ul className="flex flex-col gap-2 md:hidden">
         {leads.map((l) => (
           <li key={l.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-            <Link href={`/leads/${l.id}`} className="block p-3">
+            <Link href={`/leads/${l.id}`} onClick={(e) => abrir(e, l.id)} className="block p-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-slate-900">{l.nombre}</p>

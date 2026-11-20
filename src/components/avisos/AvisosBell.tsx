@@ -230,7 +230,7 @@ export function AvisosBell({ role, username }: { role: Role; username: string })
                         key={v.id}
                         onClick={() => {
                           setOpen(false);
-                          router.push(`/leads/${v.id}`);
+                          router.push(`/leads?editar=${v.id}`);
                         }}
                         className="flex w-full items-start justify-between gap-3 border-b border-slate-100 px-4 py-2.5 text-left last:border-0 hover:bg-slate-50"
                       >
@@ -269,7 +269,7 @@ export function AvisosBell({ role, username }: { role: Role; username: string })
                       <button
                         onClick={() => {
                           setOpen(false);
-                          router.push(`/leads/${n.id}`);
+                          router.push(`/leads?editar=${n.id}`);
                         }}
                         className="flex min-w-0 flex-1 items-start justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50"
                       >

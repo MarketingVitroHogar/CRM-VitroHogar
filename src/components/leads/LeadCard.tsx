@@ -7,6 +7,7 @@ import { OverdueIndicator } from "./OverdueIndicator";
 import { FUENTE_LABELS, SUCURSAL_LABELS } from "@/lib/catalogs";
 import { isOverdue, round2 } from "@/lib/leadPolicy";
 import { formatDateOnly } from "@/lib/dateOnly";
+import { clicSimple } from "@/lib/abrirEnPanel";
 import type { LeadDTO } from "@/lib/types";
 
 const fmt = formatDateOnly;
@@ -17,12 +18,14 @@ export function LeadCard({
   showSucursal,
   onDelete,
   onAssign,
+  onEdit,
 }: {
   lead: LeadDTO;
   role: Role;
   showSucursal: boolean;
   onDelete: (id: string) => void;
   onAssign: (lead: LeadDTO) => void;
+  onEdit: (id: string) => void;
 }) {
   const overdue = isOverdue(
     {
@@ -125,6 +128,12 @@ export function LeadCard({
         )}
         <Link
           href={`/leads/${lead.id}`}
+          onClick={(e) => {
+            if (clicSimple(e)) {
+              e.preventDefault();
+              onEdit(lead.id);
+            }
+          }}
           className="rounded-md bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-200"
         >
           Editar

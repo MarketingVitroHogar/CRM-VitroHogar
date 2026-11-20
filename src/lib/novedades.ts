@@ -4,11 +4,17 @@ import type { Role } from "@prisma/client";
  * Aviso de "Novedades" del CRM. Al cambiar NOVEDADES_VERSION, todas las personas vuelven a ver el aviso
  * una vez (se guarda en su navegador, por usuario). Aquí se listan los cambios; no hay nada más que tocar.
  */
-export const NOVEDADES_VERSION = "2026-11-20-c";
+export const NOVEDADES_VERSION = "2026-11-21";
 
 export type Novedad = { icono: string; titulo: string; texto: string; roles?: Role[] };
 
 export const NOVEDADES: Novedad[] = [
+  {
+    icono: "✏️",
+    titulo: "Editar un lead en un panel lateral",
+    texto:
+      "Al tocar un lead (o su lápiz) ya no se abre otra pantalla: se abre un panel a la derecha, encima de la lista, igual que al cargar un lead nuevo. Guardas y la lista se actualiza sola. Lo mismo pasa al abrir un lead desde Inicio o desde la campana. Si necesitas la ficha completa, abre el lead con Ctrl + clic.",
+  },
   {
     icono: "📂",
     titulo: "Abiertos de meses anteriores",

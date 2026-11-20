@@ -167,7 +167,7 @@ export default async function InicioPage() {
               <ul className="divide-y divide-slate-100">
                 {sinAtender.items.slice(0, 6).map((l) => (
                   <li key={l.id}>
-                    <Link href={`/leads/${l.id}`} className="flex items-start justify-between gap-3 py-2.5 hover:bg-slate-50">
+                    <Link href={`/leads?editar=${l.id}`} className="flex items-start justify-between gap-3 py-2.5 hover:bg-slate-50">
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-semibold text-slate-900">{l.nombre}</span>
                         <span className="block truncate text-xs text-slate-500">{l.interes || l.telefono}</span>
@@ -214,7 +214,7 @@ export default async function InicioPage() {
               <ul className="divide-y divide-slate-100">
                 {seguimientos.items.map((l) => (
                   <li key={l.id}>
-                    <Link href={`/leads/${l.id}`} className="flex items-start justify-between gap-3 py-2.5 hover:bg-slate-50">
+                    <Link href={`/leads?editar=${l.id}`} className="flex items-start justify-between gap-3 py-2.5 hover:bg-slate-50">
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-semibold text-slate-900">{l.nombre}</span>
                         <span className="block truncate text-xs text-slate-500">
@@ -271,7 +271,7 @@ export default async function InicioPage() {
           <ul className="grid gap-x-8 sm:grid-cols-2">
             {anteriores.items.map((l) => (
               <li key={l.id} className="border-t border-slate-100">
-                <Link href={`/leads/${l.id}`} className="flex items-start justify-between gap-3 py-2.5 hover:bg-slate-50">
+                <Link href={`/leads?editar=${l.id}`} className="flex items-start justify-between gap-3 py-2.5 hover:bg-slate-50">
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-semibold text-slate-900">{l.nombre}</span>
                     <span className="block truncate text-xs text-slate-500">
@@ -361,7 +361,7 @@ export default async function InicioPage() {
               <ul className="divide-y divide-slate-100">
                 {data.ventasRecientes.map((v) => (
                   <li key={v.id}>
-                    <Link href={`/leads/${v.id}`} className="flex items-center justify-between gap-3 py-2 hover:bg-slate-50">
+                    <Link href={`/leads?editar=${v.id}`} className="flex items-center justify-between gap-3 py-2 hover:bg-slate-50">
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-semibold text-slate-900">{v.nombre}</span>
                         <span className="block truncate text-xs text-slate-500">

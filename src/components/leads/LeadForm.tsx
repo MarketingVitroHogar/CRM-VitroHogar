@@ -17,6 +17,7 @@ import {
 import { responsableOptionsFor, defaultResponsableFor } from "@/lib/leadPolicy";
 import { formatDateOnly } from "@/lib/dateOnly";
 import type { LeadDTO } from "@/lib/types";
+import { LEADS_CHANGED_EVENT } from "./AsignarDialog";
 
 type FormValues = {
   fecha: string;
@@ -98,19 +99,36 @@ export function LeadForm({
   role,
   gerenteSucursal,
   lead,
+  panel = false,
+  onSaved,
+  onCancel,
+  onDirty,
 }: {
   mode: "create" | "edit";
   role: Role;
   gerenteSucursal?: Sucursal | null;
   lead?: LeadDTO;
+  /** true = se muestra dentro del panel lateral de Leads (una columna; al guardar no cambia de página). */
+  panel?: boolean;
+  onSaved?: (nombre: string) => void;
+  onCancel?: () => void;
+  onDirty?: (dirty: boolean) => void;
 }) {
   const router = useRouter();
+  const cols2 = panel ? "" : "sm:grid-cols-2";
+  const wide = panel ? "" : "sm:col-span-2";
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const { register, handleSubmit, watch, setValue, getValues, formState } = useForm<FormValues>({
     defaultValues: defaultValuesFor(lead, gerenteSucursal, role),
   });
+
+  // Avisa al panel si hay cambios sin guardar (para preguntar antes de cerrarlo).
+  const sucio = formState.isDirty;
+  useEffect(() => {
+    onDirty?.(sucio);
+  }, [sucio, onDirty]);
 
   const isCoord = role === "coord";
   const canEditCoreFields = isCoord; // nombre, telefono, sucursal, fuente, interes, fecha
@@ -211,6 +229,17 @@ export function LeadForm({
         return;
       }
 
+      if (onSaved) {
+        // Dentro del panel: se actualiza la lista de Leads (sola) y el panel se cierra.
+        try {
+          window.dispatchEvent(new Event(LEADS_CHANGED_EVENT));
+        } catch {
+          /* ignorar */
+        }
+        setSubmitting(false);
+        onSaved(values.nombre);
+        return;
+      }
       router.push("/leads");
       router.refresh();
     } catch {
@@ -247,7 +276,7 @@ export function LeadForm({
       )}
 
       {canEditCoreFields && (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className={`grid grid-cols-1 gap-4 ${cols2}`}>
         <div>
           <label className={labelClass}>Fecha de ingreso</label>
           <input
@@ -300,7 +329,7 @@ export function LeadForm({
           </select>
         </div>
 
-        <div className="sm:col-span-2">
+        <div className={wide}>
           <label className={labelClass}>Interés (qué busca el cliente)</label>
           <input
             type="text"
@@ -314,7 +343,7 @@ export function LeadForm({
 
       {canEditCoreFields && <hr className="border-slate-200" />}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className={`grid grid-cols-1 gap-4 ${cols2}`}>
         <div>
           <label className={labelClass}>Estado</label>
           <select className={inputClass} {...register("estado")}>
@@ -403,7 +432,7 @@ export function LeadForm({
           </div>
         )}
 
-        <div className="sm:col-span-2">
+        <div className={wide}>
           <label className={labelClass}>Notas</label>
           <textarea rows={3} className={inputClass} {...register("notas")} />
         </div>
@@ -411,7 +440,7 @@ export function LeadForm({
 
       {submitError && <p className="text-sm text-red-600">{submitError}</p>}
 
-      <div className="flex gap-3">
+      <div className={panel ? "sticky bottom-0 -mx-4 flex gap-2 border-t border-slate-200 bg-white px-4 py-3" : "flex gap-3"}>
         <button
           type="submit"
           disabled={submitting || formState.isSubmitting}
@@ -421,7 +450,7 @@ export function LeadForm({
         </button>
         <button
           type="button"
-          onClick={() => router.push("/leads")}
+          onClick={() => (onCancel ? onCancel() : router.push("/leads"))}
           className="rounded-md bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
         >
           Cancelar

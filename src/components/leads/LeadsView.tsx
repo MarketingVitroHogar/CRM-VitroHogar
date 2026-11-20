@@ -12,6 +12,7 @@ import { LeadCard } from "./LeadCard";
 import { LeadsKanban } from "./LeadsKanban";
 import { LeadsTable } from "./LeadsTable";
 import { NewLeadPanel } from "./NewLeadPanel";
+import { EditLeadPanel } from "./EditLeadPanel";
 import { AsignarDialog, LEADS_CHANGED_EVENT, type AsignarResult } from "./AsignarDialog";
 import { useToast } from "@/components/ui/Toast";
 import { VISTA_STORAGE_KEY, type LeadsVista } from "@/lib/kanban";
@@ -54,19 +55,34 @@ export function LeadsView({ role }: { role: Role }) {
   const [soloAnteriores, setSoloAnteriores] = useState(() => searchParams.get("abiertos") === "anteriores");
   // Panel lateral "Nuevo lead" (solo Coordinación). También se abre con /leads?nuevo=1 (botón de Inicio).
   const [nuevoAbierto, setNuevoAbierto] = useState(() => role === "coord" && searchParams.get("nuevo") === "1");
+  // Panel lateral "Editar lead" (id del lead abierto). También se abre con /leads?editar=ID (Inicio, campana).
+  const [editandoId, setEditandoId] = useState<string | null>(() => searchParams.get("editar"));
   // Si ya estás en Leads y tocas una sucursal en la campana, los filtros se actualizan.
   const urlKey = searchParams.toString();
   useEffect(() => {
     if (!urlKey) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- sincroniza los filtros con la dirección
-    setFilters((f) => ({ ...f, ...filtersFromUrl(new URLSearchParams(urlKey), role), q: "" }));
-    setSoloPorAsignar(role === "gerente" && new URLSearchParams(urlKey).get("sinAsesor") === "1");
-    setSoloAnteriores(new URLSearchParams(urlKey).get("abiertos") === "anteriores");
-    if (role === "coord" && new URLSearchParams(urlKey).get("nuevo") === "1") {
+    const sp = new URLSearchParams(urlKey);
+    // "nuevo" y "editar" solo abren un panel: no deben reiniciar los filtros que ya elegiste.
+    if ([...sp.keys()].some((k) => k !== "nuevo" && k !== "editar")) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sincroniza los filtros con la dirección
+      setFilters((f) => ({ ...f, ...filtersFromUrl(sp, role), q: "" }));
+      setSoloPorAsignar(role === "gerente" && sp.get("sinAsesor") === "1");
+      setSoloAnteriores(sp.get("abiertos") === "anteriores");
+    }
+    let abrio = false;
+    if (role === "coord" && sp.get("nuevo") === "1") {
       setNuevoAbierto(true);
-      // Quita "nuevo=1" de la dirección para que al recargar la página no se vuelva a abrir el panel.
-      const sp = new URLSearchParams(urlKey);
+      abrio = true;
+    }
+    const editar = sp.get("editar");
+    if (editar) {
+      setEditandoId(editar);
+      abrio = true;
+    }
+    if (abrio) {
+      // Quita "nuevo" / "editar" de la dirección para que al recargar la página no se vuelva a abrir el panel.
       sp.delete("nuevo");
+      sp.delete("editar");
       window.history.replaceState(null, "", sp.toString() ? `/leads?${sp.toString()}` : "/leads");
     }
   }, [urlKey, role]);
@@ -300,15 +316,15 @@ export function LeadsView({ role }: { role: Role }) {
       )}
 
       {!loading && leads.length > 0 && vista === "kanban" && (
-        <LeadsKanban leads={leads} role={role} setLeads={setLeads} reload={() => Promise.all([fetchLeads(true), fetchPorAsignar()]).then(() => undefined)} onAssign={setAsignando} />
+        <LeadsKanban leads={leads} role={role} setLeads={setLeads} reload={() => Promise.all([fetchLeads(true), fetchPorAsignar()]).then(() => undefined)} onAssign={setAsignando} onEdit={setEditandoId} />
       )}
 
-      {!loading && leads.length > 0 && vista === "lista" && <LeadsTable leads={pageLeads} role={role} onDelete={handleDelete} onAssign={setAsignando} />}
+      {!loading && leads.length > 0 && vista === "lista" && <LeadsTable leads={pageLeads} role={role} onDelete={handleDelete} onAssign={setAsignando} onEdit={setEditandoId} />}
 
       {!loading && leads.length > 0 && vista === "tarjetas" && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {pageLeads.map((lead) => (
-            <LeadCard key={lead.id} lead={lead} role={role} showSucursal={role === "coord"} onDelete={handleDelete} onAssign={setAsignando} />
+            <LeadCard key={lead.id} lead={lead} role={role} showSucursal={role === "coord"} onDelete={handleDelete} onAssign={setAsignando} onEdit={setEditandoId} />
           ))}
         </div>
       )}
@@ -345,6 +361,15 @@ export function LeadsView({ role }: { role: Role }) {
           }}
         />
       )}
+      <EditLeadPanel
+        id={editandoId}
+        role={role}
+        onClose={() => setEditandoId(null)}
+        onSaved={(nombre) => {
+          toast(`✓ Cambios guardados: ${nombre}`);
+          setEditandoId(null);
+        }}
+      />
       <AsignarDialog lead={asignando} onClose={() => setAsignando(null)} onDone={handleAssigned} />
       {toastNode}
     </div>

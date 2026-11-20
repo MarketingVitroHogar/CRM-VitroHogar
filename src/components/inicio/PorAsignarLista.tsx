@@ -39,7 +39,7 @@ export function PorAsignarLista({ items, total, sucursal }: { items: Item[]; tot
       <ul className="divide-y divide-slate-100">
         {visibles.map((l) => (
           <li key={l.id} className="flex items-center justify-between gap-3 py-2.5">
-            <Link href={`/leads/${l.id}`} className="min-w-0 flex-1 hover:underline">
+            <Link href={`/leads?editar=${l.id}`} className="min-w-0 flex-1 hover:underline">
               <span className="block truncate text-sm font-semibold text-slate-900">{l.nombre}</span>
               <span className="block truncate text-xs text-slate-500">
                 {l.interes || l.telefono} · hace {hace(l.createdAt)}
