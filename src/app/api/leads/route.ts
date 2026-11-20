@@ -63,9 +63,17 @@ export async function GET(req: NextRequest) {
     if (!estado) where.estado = { notIn: ["VENTA", "PERDIDO"] };
   }
 
+  // "Abiertos de meses anteriores": leads sin cerrar (ni Venta ni Perdido) ingresados antes del mes en curso.
+  const anteriores = searchParams.get("abiertosAnteriores") === "1";
+  if (anteriores) {
+    const hoyMx = mexicoTodayAsUTCDate();
+    where.estado = { notIn: ["VENTA", "PERDIDO"] };
+    where.fecha = { lt: new Date(Date.UTC(hoyMx.getUTCFullYear(), hoyMx.getUTCMonth(), 1)) };
+  }
+
   // Por defecto, una búsqueda ignora el periodo: encontrar a un cliente por nombre o teléfono
   // no debe obligar a adivinar cuándo llegó. Con qEnPeriodo=1 se busca solo dentro del periodo.
-  const aplicaPeriodo = !q || qEnPeriodo;
+  const aplicaPeriodo = (!q || qEnPeriodo) && !anteriores;
   if (aplicaPeriodo) {
     if (desde && hasta) {
       const { start, end } = dayRangeUTC(desde, hasta);

@@ -97,7 +97,7 @@ export default async function InicioPage() {
   const m = rep.metrics;
   const c = rep.comparativo?.metrics;
   const delta = (a: number, b: number | undefined, extra?: { puntos?: boolean }) => (b === undefined ? null : { actual: a, anterior: b, ...extra });
-  const { sinAsignar, sinAtender, seguimientos } = data;
+  const { sinAsignar, sinAtender, seguimientos, anteriores } = data;
 
   const filaSucursal = (s: { sucursal: keyof typeof SUCURSAL_LABELS; total: number; atrasados: number }, href: string, etiqueta: string) => (
     <li key={s.sucursal}>
@@ -234,6 +234,60 @@ export default async function InicioPage() {
           )}
         </div>
       </div>
+
+      {/* ============ ABIERTOS DE MESES ANTERIORES ============ */}
+      <Tarea
+        titulo="Abiertos de meses anteriores"
+        total={anteriores.total}
+        detalle={anteriores.vencidos > 0 ? `${anteriores.vencidos} con seguimiento vencido` : "Siguen sin cerrar: no los pierdas de vista"}
+        tono={anteriores.vencidos > 0 ? "urgente" : anteriores.total > 0 ? "pendiente" : "listo"}
+        href="/leads?abiertos=anteriores"
+        enlace="Ver todos en Leads"
+      >
+        <div className="mb-2 flex flex-wrap gap-2">
+          {anteriores.porEstado.map((e) => (
+            <span key={e.key} className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+              {e.total} {e.label}
+            </span>
+          ))}
+        </div>
+        {coord ? (
+          <ul className="grid gap-x-8 sm:grid-cols-2">
+            {anteriores.porSucursal.map((s) => (
+              <li key={s.sucursal} className="border-t border-slate-100">
+                <Link href={`/leads?sucursal=${s.sucursal}&abiertos=anteriores`} className="flex items-center justify-between gap-3 py-2 hover:bg-slate-50">
+                  <span className="text-sm font-medium text-slate-800">{SUCURSAL_LABELS[s.sucursal]}</span>
+                  <span className="text-right text-sm">
+                    <span className="font-bold text-slate-900">
+                      {s.total} <span className="font-normal text-slate-500">abiertos</span>
+                    </span>
+                    {s.vencidos > 0 && <span className="block text-[11px] font-semibold text-red-600">{s.vencidos} con seguimiento vencido</span>}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <ul className="grid gap-x-8 sm:grid-cols-2">
+            {anteriores.items.map((l) => (
+              <li key={l.id} className="border-t border-slate-100">
+                <Link href={`/leads/${l.id}`} className="flex items-start justify-between gap-3 py-2.5 hover:bg-slate-50">
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold text-slate-900">{l.nombre}</span>
+                    <span className="block truncate text-xs text-slate-500">
+                      {ESTADO_LABELS[l.estado as keyof typeof ESTADO_LABELS]}
+                      {l.asesor ? ` · ${corto(l.asesor)}` : " · Sin asesor"}
+                    </span>
+                  </span>
+                  <span className={l.vencido ? "shrink-0 text-xs font-semibold text-red-600" : "shrink-0 text-xs text-slate-400"}>
+                    {l.vencido && l.seguimiento ? `Vencido ${formatDateOnly(l.seguimiento, "d MMM")}` : `Ingresó ${formatDateOnly(l.fecha, "d MMM")}`}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Tarea>
 
       {/* ============ DESEMPEÑO DEL MES ============ */}
       <div>

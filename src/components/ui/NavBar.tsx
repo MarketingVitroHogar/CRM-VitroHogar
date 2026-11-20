@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import { Logo } from "@/components/ui/Logo";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -123,14 +123,7 @@ export function NavBar({
     <header className="border-b-2 border-brand bg-white">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <Image
-            src="/logo-vitrohogar.png"
-            alt="Vitro Hogar"
-            width={900}
-            height={176}
-            priority
-            className="logo-placa h-8 w-auto sm:h-9"
-          />
+          <Logo alt="Vitro Hogar" className="h-8 w-auto sm:h-9" />
           <div className="border-l border-slate-200 pl-3">
             <p className="text-xs font-semibold text-slate-900">CRM</p>
             <p className="text-xs text-slate-500">{subtitle}</p>

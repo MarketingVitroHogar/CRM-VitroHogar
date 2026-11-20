@@ -50,6 +50,8 @@ export function LeadsView({ role }: { role: Role }) {
 
   // "Por asignar": leads abiertos sin asesor del mes en curso (se ignora el periodo elegido).
   const [soloPorAsignar, setSoloPorAsignar] = useState(() => role === "gerente" && searchParams.get("sinAsesor") === "1");
+  // "Abiertos de meses anteriores": leads sin cerrar ingresados antes de este mes (se abre desde Inicio).
+  const [soloAnteriores, setSoloAnteriores] = useState(() => searchParams.get("abiertos") === "anteriores");
   // Panel lateral "Nuevo lead" (solo Coordinación). También se abre con /leads?nuevo=1 (botón de Inicio).
   const [nuevoAbierto, setNuevoAbierto] = useState(() => role === "coord" && searchParams.get("nuevo") === "1");
   // Si ya estás en Leads y tocas una sucursal en la campana, los filtros se actualizan.
@@ -59,6 +61,7 @@ export function LeadsView({ role }: { role: Role }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- sincroniza los filtros con la dirección
     setFilters((f) => ({ ...f, ...filtersFromUrl(new URLSearchParams(urlKey), role), q: "" }));
     setSoloPorAsignar(role === "gerente" && new URLSearchParams(urlKey).get("sinAsesor") === "1");
+    setSoloAnteriores(new URLSearchParams(urlKey).get("abiertos") === "anteriores");
     if (role === "coord" && new URLSearchParams(urlKey).get("nuevo") === "1") {
       setNuevoAbierto(true);
       // Quita "nuevo=1" de la dirección para que al recargar la página no se vuelva a abrir el panel.
@@ -108,19 +111,20 @@ export function LeadsView({ role }: { role: Role }) {
       const params = new URLSearchParams();
       // El rango se calcula al momento de pedir (así "Hoy" siempre es el día actual).
       // "Por asignar" siempre es del mes en curso (igual que Inicio y la campana).
-      const rango = rangoDe(soloPorAsignar ? PERIODO_POR_DEFECTO : filters.periodo);
+      const rango = soloAnteriores ? null : rangoDe(soloPorAsignar ? PERIODO_POR_DEFECTO : filters.periodo);
       if (rango) {
         params.set("desde", rango.from);
         params.set("hasta", rango.to);
       }
       if (soloPorAsignar) params.set("sinAsesor", "1");
+      if (soloAnteriores) params.set("abiertosAnteriores", "1");
       if (filters.q) {
         params.set("q", filters.q);
         if (filters.qEnPeriodo) params.set("qEnPeriodo", "1");
       }
       // En Kanban las columnas son los estados: el filtro de estado no aplica.
       // En el Kanban las columnas son los estados: solo aplica el filtro "Sin seguimiento".
-      if (filters.estado && !soloPorAsignar && (vista !== "kanban" || filters.estado === "SIN_SEGUIMIENTO")) params.set("estado", filters.estado);
+      if (filters.estado && !soloPorAsignar && !soloAnteriores && (vista !== "kanban" || filters.estado === "SIN_SEGUIMIENTO")) params.set("estado", filters.estado);
       if (role === "coord" && filters.sucursal) params.set("sucursal", filters.sucursal);
       params.set("orden", filters.orden);
 
@@ -135,7 +139,7 @@ export function LeadsView({ role }: { role: Role }) {
         if (!quiet) setLoading(false);
       }
     },
-    [filters, role, vista, soloPorAsignar]
+    [filters, role, vista, soloPorAsignar, soloAnteriores]
   );
 
   // Cuántos leads siguen sin asesor (para el aviso de arriba). Solo el gerente asigna: Coordinación no ve este aviso.
@@ -222,6 +226,24 @@ export function LeadsView({ role }: { role: Role }) {
         )}
       </div>
 
+      {soloAnteriores && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5">
+          <p className="text-sm font-medium text-slate-800">
+            Mostrando {loading ? "…" : leads.length} lead{leads.length === 1 ? "" : "s"} abierto{leads.length === 1 ? "" : "s"} de meses anteriores (sin cerrar).
+          </p>
+          <button
+            onClick={() => {
+              setSoloAnteriores(false);
+              setPage(1);
+              window.history.replaceState(null, "", "/leads");
+            }}
+            className="min-h-9 rounded-md bg-brand px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-brand-dark"
+          >
+            Ver el mes actual
+          </button>
+        </div>
+      )}
+
       {/* Aviso "Por asignar": lo primero que debe ver el gerente */}
       {(porAsignar > 0 || soloPorAsignar) && (
         <div className={clsx("flex flex-wrap items-center justify-between gap-2 rounded-lg border px-4 py-2.5", soloPorAsignar ? "border-brand bg-red-50" : "border-amber-300 bg-amber-50")}>
@@ -244,7 +266,7 @@ export function LeadsView({ role }: { role: Role }) {
 
       <div className="flex flex-wrap items-end justify-between gap-3">
         {/* En "Por asignar" el periodo y el estado no aplican, así que se ocultan para no confundir. */}
-        {soloPorAsignar ? <span /> : <LeadFilters value={filters} onChange={setFilters} showSucursal={role === "coord"} estadoReducido={vista === "kanban"} />}
+        {soloPorAsignar || soloAnteriores ? <span /> : <LeadFilters value={filters} onChange={setFilters} showSucursal={role === "coord"} estadoReducido={vista === "kanban"} />}
         <div className="inline-flex rounded-lg border border-slate-300 bg-white p-0.5" role="group" aria-label="Tipo de vista">
           {VISTAS.map((v) => (
             <button

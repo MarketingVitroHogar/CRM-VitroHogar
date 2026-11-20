@@ -4,6 +4,7 @@ import { getReport } from "@/lib/reportsAggregation";
 import { isOverdue } from "@/lib/leadPolicy";
 import { mexicoTodayAsUTCDate } from "@/lib/dateOnly";
 import { asesoresFor, SUCURSALES } from "@/lib/catalogs";
+import { KANBAN_COLUMNS, columnOf } from "@/lib/kanban";
 
 type U = { role: Role; sucursal: Sucursal | null };
 
@@ -102,6 +103,45 @@ export async function getInicio(user: U) {
     select: { id: true, nombre: true, sucursal: true, asesor: true, montoVenta: true, fechaCierre: true },
   });
 
+  // ---- Abiertos de meses anteriores: leads sin cerrar (ni Venta ni Perdido) ingresados antes de este mes ----
+  const anterioresRows = await prisma.lead.findMany({
+    where: { ...sucWhere, estado: ABIERTO, fecha: { lt: mesInicio } },
+    take: 3000,
+    select: { id: true, nombre: true, telefono: true, sucursal: true, estado: true, asesor: true, fecha: true, proximoSeguimiento: true },
+  });
+  const vencidoAnt = (l: (typeof anterioresRows)[number]) => !!l.proximoSeguimiento && l.proximoSeguimiento.getTime() < hoy.getTime();
+  const anterioresOrdenados = [...anterioresRows].sort((a, b) => {
+    const va = vencidoAnt(a), vb = vencidoAnt(b);
+    if (va !== vb) return va ? -1 : 1; // primero los de seguimiento vencido
+    if (va && vb) return a.proximoSeguimiento!.getTime() - b.proximoSeguimiento!.getTime();
+    return a.fecha.getTime() - b.fecha.getTime(); // luego los más viejos
+  });
+  const antPorSuc = new Map<Sucursal, { sucursal: Sucursal; total: number; vencidos: number }>();
+  for (const l of anterioresRows) {
+    const e = antPorSuc.get(l.sucursal) ?? { sucursal: l.sucursal, total: 0, vencidos: 0 };
+    e.total++;
+    if (vencidoAnt(l)) e.vencidos++;
+    antPorSuc.set(l.sucursal, e);
+  }
+  const anteriores = {
+    total: anterioresRows.length,
+    vencidos: anterioresRows.filter(vencidoAnt).length,
+    porEstado: KANBAN_COLUMNS.filter((c) => c.key !== "VENTA" && c.key !== "PERDIDO")
+      .map((c) => ({ key: c.key, label: c.label, total: anterioresRows.filter((l) => columnOf(l.estado).key === c.key).length }))
+      .filter((c) => c.total > 0),
+    porSucursal: [...antPorSuc.values()].sort((a, b) => b.vencidos - a.vencidos || b.total - a.total),
+    items: anterioresOrdenados.slice(0, 6).map((l) => ({
+      id: l.id,
+      nombre: l.nombre,
+      sucursal: l.sucursal,
+      estado: l.estado,
+      asesor: l.asesor,
+      fecha: l.fecha.toISOString().slice(0, 10),
+      seguimiento: l.proximoSeguimiento ? l.proximoSeguimiento.toISOString().slice(0, 10) : null,
+      vencido: vencidoAnt(l),
+    })),
+  };
+
   // ---- Solo Coordinación ----
   let captura: { hoy: number; semana: number; mes: number } | null = null;
   let sucursalesSinAsesores: Sucursal[] = [];
@@ -117,6 +157,7 @@ export async function getInicio(user: U) {
   return {
     hoy: hoy.toISOString().slice(0, 10),
     reporteMes,
+    anteriores,
     sinAsignar: { total: sinAsignar.length, items: sinAsignar.slice(0, 8), porSucursal: agrupar(sinAsignar) },
     sinAtender: { total: sinAtender.length, atrasados: sinAtender.filter((l) => l.atrasado).length, items: sinAtender.slice(0, 8), porSucursal: agrupar(sinAtender) },
     seguimientos: {

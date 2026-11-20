@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+import { Logo } from "@/components/ui/Logo";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { PW_NOTICE_DISMISSED_KEY } from "@/lib/accountEvents";
@@ -57,14 +57,7 @@ export default function LoginPage() {
   return (
     <div className="flex flex-1 items-center justify-center bg-slate-50 px-4 py-12">
       <div className="w-full max-w-sm rounded-xl border border-slate-200 border-t-4 border-t-brand bg-white p-8 shadow-sm">
-        <Image
-          src="/logo-vitrohogar.png"
-          alt="Vitro Hogar — Pisos, Azulejos, Baños"
-          width={900}
-          height={176}
-          priority
-          className="logo-placa mx-auto mb-3 h-auto w-64 max-w-full"
-        />
+        <Logo alt="Vitro Hogar — Pisos, Azulejos, Baños" className="mx-auto mb-3 h-auto w-64 max-w-full" />
         <h1 className="mb-6 text-center text-sm font-medium text-slate-500">CRM de seguimiento de leads</h1>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">

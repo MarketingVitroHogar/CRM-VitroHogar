@@ -4,11 +4,22 @@ import type { Role } from "@prisma/client";
  * Aviso de "Novedades" del CRM. Al cambiar NOVEDADES_VERSION, todas las personas vuelven a ver el aviso
  * una vez (se guarda en su navegador, por usuario). Aquí se listan los cambios; no hay nada más que tocar.
  */
-export const NOVEDADES_VERSION = "2026-11-20-b";
+export const NOVEDADES_VERSION = "2026-11-20-c";
 
 export type Novedad = { icono: string; titulo: string; texto: string; roles?: Role[] };
 
 export const NOVEDADES: Novedad[] = [
+  {
+    icono: "📂",
+    titulo: "Abiertos de meses anteriores",
+    texto:
+      "En Inicio hay una tarjeta nueva con los leads que siguen sin cerrar (ni venta ni perdido) de meses anteriores, y cuántos tienen el seguimiento vencido. Así no se pierden de vista aunque Inicio y la campana solo muestren el mes en curso. Tócala para verlos en Leads.",
+  },
+  {
+    icono: "🌙",
+    titulo: "Nuevo logo en modo noche",
+    texto: "En modo noche el logo de Vitro Hogar ahora se ve con letras blancas, sin el recuadro blanco de antes.",
+  },
   {
     icono: "👩‍💼",
     titulo: "Nueva asesora en López Mateos",

@@ -144,12 +144,13 @@ html.dark select optgroup {
 html.dark .text-brand {
   color: #ff6b7d;
 }
-html.dark .hover\:bg-red-50:hover {
-  background-color: color-mix(in srgb, var(--color-red-50) 100%, transparent);
+/* Logo: el normal en modo claro; el de letras blancas en modo noche */
+.logo-noche {
+  display: none;
 }
-/* El logo tiene letras oscuras: en modo noche va sobre una placa clara */
-html.dark .logo-placa {
-  background: #ffffff;
-  border-radius: 8px;
-  padding: 3px 8px;
+html.dark .logo-noche {
+  display: block;
+}
+html.dark .logo-claro {
+  display: none;
 }
