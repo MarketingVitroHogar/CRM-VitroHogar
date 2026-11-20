@@ -7,6 +7,7 @@ import { FUENTES, FUENTE_LABELS, SUCURSALES, SUCURSAL_LABELS, ESTADO_LABELS } fr
 import { formatDateOnly } from "@/lib/dateOnly";
 import { formatTelefono, soloDigitos, telefonoValido } from "@/lib/telefono";
 import { useToast } from "@/components/ui/Toast";
+import { LEADS_CHANGED_EVENT } from "./AsignarDialog";
 
 type Dup = { id: string; nombre: string; telefono: string; sucursal: Sucursal; estado: string; fecha: string };
 
@@ -20,7 +21,20 @@ const label = "mb-1 block text-sm font-medium text-slate-700";
  * Todo lo demás se completa solo: fecha de hoy, estado "Nuevo" y responsable = gerente de la sucursal.
  * El asesor NO se elige aquí: lo asigna después el gerente de la sucursal.
  */
-export function NewLeadForm() {
+export function NewLeadForm({
+  panel = false,
+  onSaved,
+  onCancel,
+  onDirty,
+}: {
+  /** true = se muestra dentro del panel lateral de Leads (una columna, sin cambiar de página). */
+  panel?: boolean;
+  onSaved?: (nombre: string, sucursal: Sucursal, otro: boolean) => void;
+  onCancel?: () => void;
+  onDirty?: (dirty: boolean) => void;
+} = {}) {
+  const cols2 = panel ? "" : "sm:grid-cols-2";
+  const wide = panel ? "" : "sm:col-span-2";
   const router = useRouter();
   const { toast, toastNode } = useToast();
   const nombreRef = useRef<HTMLInputElement>(null);
@@ -48,6 +62,11 @@ export function NewLeadForm() {
       /* sin almacenamiento */
     }
   }, []);
+
+  // Avisa al panel si hay datos escritos (para preguntar antes de cerrarlo).
+  useEffect(() => {
+    onDirty?.(nombre.trim() !== "" || telefono !== "" || interes.trim() !== "");
+  }, [nombre, telefono, interes, onDirty]);
 
   // Aviso de teléfono repetido, mientras se escribe (con 10 dígitos o más).
   useEffect(() => {
@@ -101,8 +120,15 @@ export function NewLeadForm() {
       } catch {
         /* ignorar */
       }
+      try {
+        window.dispatchEvent(new Event(LEADS_CHANGED_EVENT)); // la lista de Leads se actualiza sola
+      } catch {
+        /* ignorar */
+      }
+      const guardado = nombre.trim();
       if (otro) {
-        toast(`✓ Lead guardado: ${nombre.trim()} · ${SUCURSAL_LABELS[sucursal]}`);
+        if (onSaved) onSaved(guardado, sucursal, true);
+        else toast(`✓ Lead guardado: ${guardado} · ${SUCURSAL_LABELS[sucursal]}`);
         setNombre("");
         setTelefono("");
         setInteres("");
@@ -112,7 +138,9 @@ export function NewLeadForm() {
         setConfirmDup(false);
         setSaving(null);
         nombreRef.current?.focus();
-        router.refresh();
+        if (!onSaved) router.refresh();
+      } else if (onSaved) {
+        onSaved(guardado, sucursal, false);
       } else {
         router.push("/leads");
         router.refresh();
@@ -132,7 +160,7 @@ export function NewLeadForm() {
       className="flex flex-col gap-5"
       autoComplete="off"
     >
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className={`grid grid-cols-1 gap-4 ${cols2}`}>
         <div>
           <label htmlFor="nl-nombre" className={label}>
             Nombre
@@ -157,7 +185,7 @@ export function NewLeadForm() {
         </div>
 
         {dups.length > 0 && (
-          <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm sm:col-span-2" role="alert">
+          <div className={`rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm ${wide}`} role="alert">
             <p className="font-semibold text-amber-900">Ya existe un lead con este teléfono:</p>
             <ul className="mt-1 flex flex-col gap-1">
               {dups.map((d) => (
@@ -176,7 +204,7 @@ export function NewLeadForm() {
           </div>
         )}
 
-        <div className="sm:col-span-2">
+        <div className={wide}>
           <label htmlFor="nl-int" className={label}>
             Interés <span className="font-normal text-slate-400">(qué busca el cliente)</span>
           </label>
@@ -225,14 +253,14 @@ export function NewLeadForm() {
           {masOpciones ? "▾ Menos opciones" : "▸ Más opciones (notas, fecha)"}
         </button>
         {masOpciones && (
-          <div className="mt-2 grid grid-cols-1 gap-4 rounded-lg bg-slate-50 p-4 sm:grid-cols-2">
+          <div className={`mt-2 grid grid-cols-1 gap-4 rounded-lg bg-slate-50 p-4 ${cols2}`}>
             <div>
               <label htmlFor="nl-fecha" className={label}>
                 Fecha de ingreso <span className="font-normal text-slate-400">(vacío = hoy)</span>
               </label>
               <input id="nl-fecha" type="date" className={input} value={fecha} onChange={(e) => setFecha(e.target.value)} />
             </div>
-            <div className="sm:col-span-2">
+            <div className={wide}>
               <label htmlFor="nl-notas" className={label}>
                 Notas
               </label>
@@ -249,8 +277,14 @@ export function NewLeadForm() {
       )}
 
       {/* Acciones: quedan a la vista en celular */}
-      <div className="sticky bottom-0 -mx-4 flex flex-wrap gap-2 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0">
-        <button type="submit" disabled={saving !== null} className="min-h-11 flex-1 rounded-md bg-brand px-5 py-2 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60 sm:flex-none">
+      <div
+        className={
+          panel
+            ? "sticky bottom-0 -mx-4 flex flex-wrap gap-2 border-t border-slate-200 bg-white px-4 py-3"
+            : "sticky bottom-0 -mx-4 flex flex-wrap gap-2 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0"
+        }
+      >
+        <button type="submit" disabled={saving !== null} className="min-h-11 flex-1 rounded-md bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60 sm:flex-none">
           {saving === "uno" ? "Guardando…" : "Guardar"}
         </button>
         <button
@@ -261,9 +295,11 @@ export function NewLeadForm() {
         >
           {saving === "otro" ? "Guardando…" : "Guardar y cargar otro"}
         </button>
-        <button type="button" onClick={() => router.push("/leads")} className="min-h-11 rounded-md bg-slate-100 px-5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200">
-          Cancelar
-        </button>
+        {!panel && (
+          <button type="button" onClick={() => (onCancel ? onCancel() : router.push("/leads"))} className="min-h-11 rounded-md bg-slate-100 px-5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200">
+            Cancelar
+          </button>
+        )}
       </div>
       {toastNode}
     </form>

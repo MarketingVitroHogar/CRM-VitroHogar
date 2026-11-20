@@ -111,7 +111,7 @@ export function LeadsKanban({
 
   return (
     <div>
-      <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-3 sm:mx-0 sm:px-0" role="list" aria-label="Tablero de leads por estado">
+      <div className="relative -mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-3 sm:mx-0 sm:px-0" role="list" aria-label="Tablero de leads por estado">
         {KANBAN_COLUMNS.map((col) => {
           const items = leads.filter((l) => col.estados.includes(l.estado));
           const limit = shown[col.key] ?? PER_COLUMN;

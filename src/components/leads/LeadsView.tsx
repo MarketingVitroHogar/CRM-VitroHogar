@@ -4,13 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import clsx from "clsx";
-import { SUCURSALES } from "@/lib/catalogs";
+import { SUCURSALES, SUCURSAL_LABELS } from "@/lib/catalogs";
 import type { Role } from "@prisma/client";
 import { LeadFilters, type LeadFilterState } from "./LeadFilters";
 import { LeadSearchBox } from "./LeadSearchBox";
 import { LeadCard } from "./LeadCard";
 import { LeadsKanban } from "./LeadsKanban";
 import { LeadsTable } from "./LeadsTable";
+import { NewLeadPanel } from "./NewLeadPanel";
 import { AsignarDialog, LEADS_CHANGED_EVENT, type AsignarResult } from "./AsignarDialog";
 import { useToast } from "@/components/ui/Toast";
 import { VISTA_STORAGE_KEY, type LeadsVista } from "@/lib/kanban";
@@ -49,6 +50,8 @@ export function LeadsView({ role }: { role: Role }) {
 
   // "Por asignar": leads abiertos sin asesor del mes en curso (se ignora el periodo elegido).
   const [soloPorAsignar, setSoloPorAsignar] = useState(() => role === "gerente" && searchParams.get("sinAsesor") === "1");
+  // Panel lateral "Nuevo lead" (solo Coordinación). También se abre con /leads?nuevo=1 (botón de Inicio).
+  const [nuevoAbierto, setNuevoAbierto] = useState(() => role === "coord" && searchParams.get("nuevo") === "1");
   // Si ya estás en Leads y tocas una sucursal en la campana, los filtros se actualizan.
   const urlKey = searchParams.toString();
   useEffect(() => {
@@ -56,6 +59,13 @@ export function LeadsView({ role }: { role: Role }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- sincroniza los filtros con la dirección
     setFilters((f) => ({ ...f, ...filtersFromUrl(new URLSearchParams(urlKey), role), q: "" }));
     setSoloPorAsignar(role === "gerente" && new URLSearchParams(urlKey).get("sinAsesor") === "1");
+    if (role === "coord" && new URLSearchParams(urlKey).get("nuevo") === "1") {
+      setNuevoAbierto(true);
+      // Quita "nuevo=1" de la dirección para que al recargar la página no se vuelva a abrir el panel.
+      const sp = new URLSearchParams(urlKey);
+      sp.delete("nuevo");
+      window.history.replaceState(null, "", sp.toString() ? `/leads?${sp.toString()}` : "/leads");
+    }
   }, [urlKey, role]);
   const [vista, setVista] = useState<LeadsVista>("kanban");
   const [leads, setLeads] = useState<LeadDTO[]>([]);
@@ -190,7 +200,7 @@ export function LeadsView({ role }: { role: Role }) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className={clsx("flex flex-col gap-4", nuevoAbierto && "lg:pr-[25rem]")}>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <LeadSearchBox
           value={filters.q}
@@ -199,9 +209,13 @@ export function LeadsView({ role }: { role: Role }) {
           onEnPeriodoChange={(v) => setFilters((prev) => ({ ...prev, qEnPeriodo: v }))}
         />
         {role === "coord" && (
-          <Link href="/leads/new" className="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark">
+          <button
+            onClick={() => setNuevoAbierto(true)}
+            aria-expanded={nuevoAbierto}
+            className="min-h-10 rounded-md bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
+          >
             + Nuevo lead
-          </Link>
+          </button>
         )}
       </div>
 
@@ -296,6 +310,16 @@ export function LeadsView({ role }: { role: Role }) {
         </div>
       )}
 
+      {role === "coord" && (
+        <NewLeadPanel
+          open={nuevoAbierto}
+          onClose={() => setNuevoAbierto(false)}
+          onSaved={(nombre, sucursal, otro) => {
+            toast(`✓ Lead guardado: ${nombre} · ${SUCURSAL_LABELS[sucursal]}`);
+            if (!otro) setNuevoAbierto(false);
+          }}
+        />
+      )}
       <AsignarDialog lead={asignando} onClose={() => setAsignando(null)} onDone={handleAssigned} />
       {toastNode}
     </div>
