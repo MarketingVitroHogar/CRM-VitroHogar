@@ -23,12 +23,15 @@ export function LeadFilters({
   onChange,
   showSucursal,
   showEstado = true,
+  estadoReducido = false,
 }: {
   value: LeadFilterState;
   onChange: (next: LeadFilterState) => void;
   showSucursal: boolean;
   /** En el Kanban las columnas ya son los estados, así que el filtro se oculta. */
   showEstado?: boolean;
+  /** En el Kanban las columnas ya son los estados: el menú solo ofrece "Todos" y "Sin seguimiento". */
+  estadoReducido?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-3">
@@ -62,11 +65,13 @@ export function LeadFilters({
               className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
             >
               <option value="">Todos</option>
-              {ESTADOS_FILTRABLES.map((e) => (
-                <option key={e} value={e}>
-                  {ESTADO_LABELS[e]}
-                </option>
-              ))}
+              <option value="SIN_SEGUIMIENTO">Sin seguimiento</option>
+              {!estadoReducido &&
+                ESTADOS_FILTRABLES.map((e) => (
+                  <option key={e} value={e}>
+                    {ESTADO_LABELS[e]}
+                  </option>
+                ))}
             </select>
           </div>
         )}

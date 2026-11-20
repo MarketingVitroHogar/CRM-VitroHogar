@@ -9,6 +9,7 @@
  */
 /* Colores institucionales — tomados directamente del logo de Vitro Hogar. */
 :root {
+  color-scheme: light; /* en modo claro, los menús y campos del navegador siempre claros (aunque el sistema esté en oscuro) */
   --background: #ffffff;
   --foreground: #231f20; /* gris casi negro del logo ("Pisos • Azulejos • Baños") */
 }
@@ -121,6 +122,23 @@ html.dark .bg-white {
 }
 html.dark .bg-white\/95 {
   background-color: color-mix(in srgb, #131c2e 95%, transparent);
+}
+/*
+ * Menús desplegables y campos: colores explícitos. Algunos navegadores y equipos (según el sistema o la versión)
+ * dibujan la lista desplegada de un <select> en blanco aunque la página sea oscura; así el texto claro nunca
+ * queda sobre fondo blanco. `:where` no suma especificidad: cualquier clase de la app (bg-white, etc.) sigue ganando.
+ */
+html.dark select option,
+html.dark select optgroup {
+  background-color: #131c2e;
+  color: #e6ebf4;
+}
+:where(html.dark) :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="submit"], [type="button"]), select, textarea) {
+  background-color: #131c2e;
+  color: #e6ebf4;
+}
+:where(html.dark) ::placeholder {
+  color: #71819b;
 }
 /* El rojo de la marca, más claro cuando es texto sobre fondo oscuro */
 html.dark .text-brand {

@@ -89,6 +89,8 @@ export function LeadsView({ role }: { role: Role }) {
 
   function changeVista(v: LeadsVista) {
     setVista(v);
+    // Al pasar al Kanban, los estados sueltos ya no aplican (sus columnas los muestran); "Sin seguimiento" sí se conserva.
+    if (v === "kanban") setFilters((f) => (f.estado && f.estado !== "SIN_SEGUIMIENTO" ? { ...f, estado: "" } : f));
     setPage(1);
     try {
       localStorage.setItem(VISTA_STORAGE_KEY, v);
@@ -117,7 +119,8 @@ export function LeadsView({ role }: { role: Role }) {
         if (filters.qEnPeriodo) params.set("qEnPeriodo", "1");
       }
       // En Kanban las columnas son los estados: el filtro de estado no aplica.
-      if (filters.estado && vista !== "kanban" && !soloPorAsignar) params.set("estado", filters.estado);
+      // En el Kanban las columnas son los estados: solo aplica el filtro "Sin seguimiento".
+      if (filters.estado && !soloPorAsignar && (vista !== "kanban" || filters.estado === "SIN_SEGUIMIENTO")) params.set("estado", filters.estado);
       if (role === "coord" && filters.sucursal) params.set("sucursal", filters.sucursal);
       params.set("orden", filters.orden);
 
@@ -241,7 +244,7 @@ export function LeadsView({ role }: { role: Role }) {
 
       <div className="flex flex-wrap items-end justify-between gap-3">
         {/* En "Por asignar" el periodo y el estado no aplican, así que se ocultan para no confundir. */}
-        {soloPorAsignar ? <span /> : <LeadFilters value={filters} onChange={setFilters} showSucursal={role === "coord"} showEstado={vista !== "kanban"} />}
+        {soloPorAsignar ? <span /> : <LeadFilters value={filters} onChange={setFilters} showSucursal={role === "coord"} estadoReducido={vista === "kanban"} />}
         <div className="inline-flex rounded-lg border border-slate-300 bg-white p-0.5" role="group" aria-label="Tipo de vista">
           {VISTAS.map((v) => (
             <button

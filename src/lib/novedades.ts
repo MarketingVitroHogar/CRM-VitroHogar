@@ -4,11 +4,23 @@ import type { Role } from "@prisma/client";
  * Aviso de "Novedades" del CRM. Al cambiar NOVEDADES_VERSION, todas las personas vuelven a ver el aviso
  * una vez (se guarda en su navegador, por usuario). Aquí se listan los cambios; no hay nada más que tocar.
  */
-export const NOVEDADES_VERSION = "2026-11-20";
+export const NOVEDADES_VERSION = "2026-11-20-b";
 
 export type Novedad = { icono: string; titulo: string; texto: string; roles?: Role[] };
 
 export const NOVEDADES: Novedad[] = [
+  {
+    icono: "⏰",
+    titulo: "Filtro “Sin seguimiento” en Leads",
+    texto:
+      "En el menú Estado de Leads (también en Kanban) ya puedes elegir “Sin seguimiento” para ver de inmediato los leads que llevan tiempo sin atenderse: los mismos que aparecen marcados como “Sin seguimiento a tiempo”.",
+  },
+  {
+    icono: "🌙",
+    titulo: "Modo noche: menús más legibles",
+    texto:
+      "Corregimos los menús desplegables (sucursal, estado, periodo…) que en algunos equipos se veían en blanco en modo noche. Si aún notas algo raro, avísanos con el nombre del navegador que usas.",
+  },
   {
     icono: "🌙",
     titulo: "Modo noche",

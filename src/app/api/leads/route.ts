@@ -44,8 +44,15 @@ export async function GET(req: NextRequest) {
     where.sucursal = sucursalParam;
   }
 
-  // Filtrar por una columna (Contactado / Cotización) incluye también sus estados históricos (No respondió / Seguimiento).
-  if (estado) {
+  // "Sin seguimiento": leads Nuevos con el seguimiento vencido, o sin fecha de seguimiento y con más de 24 h
+  // sin atender (la misma regla que marca "Sin seguimiento a tiempo" en la lista).
+  if (estado === "SIN_SEGUIMIENTO") {
+    const hoy = mexicoTodayAsUTCDate();
+    const hace24h = new Date(Date.now() - 24 * 3_600_000);
+    where.estado = "NUEVO";
+    where.AND = [{ OR: [{ proximoSeguimiento: { lt: hoy } }, { proximoSeguimiento: null, createdAt: { lt: hace24h } }] }];
+  } else if (estado) {
+    // Filtrar por una columna (Contactado / Cotización) incluye también sus estados históricos (No respondió / Seguimiento).
     const col = KANBAN_COLUMNS.find((c) => c.target === estado);
     where.estado = col ? { in: col.estados } : estado;
   }
