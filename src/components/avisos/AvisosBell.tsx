@@ -24,9 +24,12 @@ function hace(iso: string): string {
 }
 
 const seenKey = (username: string) => `crm:ventas-vistas:${username}`;
+const leidosKey = (username: string) => `crm:avisos-leidos:${username}`; // cuántos leads sin atender ya se marcaron como leídos
 
 /**
- * Campana de avisos. Se actualiza sola cada minuto.
+ * Campana de avisos. Se actualiza sola cada minuto. "Marcar todo como leído" apaga el número rojo de la campana
+ * (se guarda en el navegador de cada persona); los leads siguen pendientes en Leads e Inicio y el número
+ * vuelve a subir solo cuando llega algo nuevo.
  *  - Gerente: sus leads nuevos por atender, uno por uno.
  *  - Coordinación: cuántos leads sin atender hay en cada sucursal + ventas cerradas recientes.
  */
@@ -42,6 +45,18 @@ export function AvisosBell({ role, username }: { role: Role; username: string })
   const [data, setData] = useState<Data>({ total: 0, atrasados: 0, items: [] });
   // Hora (ms) hasta la que Coordinación ya vio las ventas cerradas. Se guarda en su navegador.
   const [vistasHasta, setVistasHasta] = useState<number>(() => Date.now());
+  // Cuántos de los leads sin atender actuales ya se marcaron como leídos.
+  const [leidos, setLeidos] = useState(0);
+  const guardarLeidos = useCallback(
+    (n: number) => {
+      try {
+        localStorage.setItem(leidosKey(username), String(n));
+      } catch {
+        /* sin almacenamiento */
+      }
+    },
+    [username]
+  );
 
   const load = useCallback(async () => {
     try {
@@ -63,12 +78,25 @@ export function AvisosBell({ role, username }: { role: Role; username: string })
         seenSales.current = new Set(d.ventas.map((v) => v.id));
       }
       setData(d);
+      // Si se atendieron leads, lo "leído" no puede ser mayor que lo que hay (así lo nuevo siempre cuenta).
+      setLeidos((prev) => {
+        const n = Math.min(prev, d.total);
+        if (n !== prev) guardarLeidos(n);
+        return n;
+      });
     } catch {
       /* sin red: se reintenta en el siguiente ciclo */
     }
-  }, [toast]);
+  }, [toast, guardarLeidos]);
 
   useEffect(() => {
+    try {
+      const n = Number(localStorage.getItem(leidosKey(username)) ?? 0);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- preferencia guardada en el navegador (solo cliente)
+      if (Number.isFinite(n) && n > 0) setLeidos(n);
+    } catch {
+      /* sin almacenamiento */
+    }
     if (coord) {
       try {
         const saved = localStorage.getItem(seenKey(username));
@@ -103,8 +131,9 @@ export function AvisosBell({ role, username }: { role: Role; username: string })
   }, []);
 
   const ventasNuevas = coord ? (data.ventas ?? []).filter((v) => new Date(v.cerradaAt).getTime() > vistasHasta).length : 0;
-  const badge = data.total + ventasNuevas;
-  const rojo = data.atrasados > 0 || ventasNuevas > 0;
+  const sinLeer = Math.max(0, data.total - leidos);
+  const badge = sinLeer + ventasNuevas;
+  const rojo = (sinLeer > 0 && data.atrasados > 0) || ventasNuevas > 0;
 
   function markSalesSeen() {
     const latest = Math.max(Date.now(), ...(data.ventas ?? []).map((v) => new Date(v.cerradaAt).getTime()));
@@ -116,6 +145,12 @@ export function AvisosBell({ role, username }: { role: Role; username: string })
     }
   }
 
+  function marcarTodoLeido() {
+    setLeidos(data.total);
+    guardarLeidos(data.total);
+    if (coord) markSalesSeen();
+  }
+
   return (
     <div ref={boxRef} className="relative">
       <button
@@ -123,7 +158,7 @@ export function AvisosBell({ role, username }: { role: Role; username: string })
           setOpen((o) => !o);
           if (!open) load();
         }}
-        aria-label={`Avisos: ${data.total} leads sin atender${data.atrasados ? `, ${data.atrasados} con más de 24 h` : ""}${ventasNuevas ? `, ${ventasNuevas} ventas cerradas nuevas` : ""}`}
+        aria-label={`Avisos: ${badge === 0 ? "todo leído" : `${badge} sin leer`}; ${data.total} leads sin atender${data.atrasados ? `, ${data.atrasados} con más de 24 h` : ""}${ventasNuevas ? `, ${ventasNuevas} ventas cerradas nuevas` : ""}`}
         aria-expanded={open}
         className="relative grid h-9 w-9 place-items-center rounded-md text-slate-600 hover:bg-slate-100"
       >
@@ -140,6 +175,14 @@ export function AvisosBell({ role, username }: { role: Role; username: string })
       {open && (
         <div className="fixed inset-x-2 top-16 z-40 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-1.5 sm:w-96">
           <div className="max-h-[70vh] overflow-auto">
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50 px-4 py-2">
+              <span className="text-xs text-slate-500">{badge > 0 ? `${badge} sin leer` : "Todo leído"}</span>
+              {badge > 0 && (
+                <button onClick={marcarTodoLeido} className="min-h-8 rounded-md px-2 text-xs font-semibold text-brand hover:bg-red-50">
+                  Marcar todo como leído
+                </button>
+              )}
+            </div>
             {coord ? (
               <>
                 {/* Leads sin atender, por sucursal */}
@@ -208,11 +251,6 @@ export function AvisosBell({ role, username }: { role: Role; username: string })
                       </button>
                     );
                   })
-                )}
-                {ventasNuevas > 0 && (
-                  <button onClick={markSalesSeen} className="w-full bg-white px-4 py-2.5 text-center text-xs font-semibold text-brand hover:bg-slate-50">
-                    Marcar ventas como vistas
-                  </button>
                 )}
               </>
             ) : (

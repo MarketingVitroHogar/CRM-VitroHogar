@@ -6,7 +6,7 @@ import { NewLeadForm } from "./NewLeadForm";
 
 /**
  * Panel lateral para cargar un lead sin salir de la pantalla de Leads (solo Coordinación).
- * En computadora la lista se queda a la izquierda y se actualiza sola; en celular ocupa toda la pantalla.
+ * Se abre ENCIMA de la lista (la lista no se mueve y se actualiza sola al guardar); en celular ocupa toda la pantalla.
  * Si hay datos escritos y se intenta cerrar, pregunta antes de descartarlos.
  */
 export function NewLeadPanel({
@@ -40,8 +40,8 @@ export function NewLeadPanel({
   if (!open) return null;
   return (
     <>
-      {/* Fondo: solo en celular (en computadora la lista sigue a la vista y se puede usar). */}
-      <div className="fixed inset-0 z-40 bg-slate-900/40 lg:hidden" onClick={tryClose} aria-hidden />
+      {/* Fondo atenuado: tocarlo cierra el panel (pregunta si hay datos sin guardar). */}
+      <div className="fixed inset-0 z-40 bg-slate-900/30" onClick={tryClose} aria-hidden />
       <aside
         role="dialog"
         aria-label="Nuevo lead"

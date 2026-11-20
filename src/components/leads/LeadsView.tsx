@@ -200,7 +200,7 @@ export function LeadsView({ role }: { role: Role }) {
   }
 
   return (
-    <div className={clsx("flex flex-col gap-4", nuevoAbierto && "lg:pr-[25rem]")}>
+    <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <LeadSearchBox
           value={filters.q}
