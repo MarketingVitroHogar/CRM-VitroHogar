@@ -6,7 +6,7 @@ import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import type { Role } from "@prisma/client";
 import { OPEN_CHANGE_PASSWORD_EVENT, PW_NOTICE_DISMISSED_KEY } from "@/lib/accountEvents";
-import { NOVEDADES_EVENT, debeMostrarNovedades, novedadesFor, novedadesKey } from "@/lib/novedades";
+import { NOVEDADES_EVENT, guardarUltimaVista, leerUltimaVista, novedadesFor, novedadesNuevas, type Novedad } from "@/lib/novedades";
 
 const input =
   "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand";
@@ -21,7 +21,8 @@ export function AccountSecurity({ passwordChanged, role, username }: { passwordC
   const router = useRouter();
   const { toast, toastNode } = useToast();
   const [notice, setNotice] = useState(false);
-  const [novedades, setNovedades] = useState(false);
+  // Novedades que se están mostrando (null = cerrado). `todas`: se abrió desde el menú (lista completa).
+  const [novedades, setNovedades] = useState<{ lista: Novedad[]; todas: boolean } | null>(null);
   const [pwOpen, setPwOpen] = useState(false);
   const [actual, setActual] = useState("");
   const [nueva, setNueva] = useState("");
@@ -29,8 +30,7 @@ export function AccountSecurity({ passwordChanged, role, username }: { passwordC
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Al entrar: primero las Novedades (una vez por persona y versión; Coordinación, en cada entrada hasta
-  // el 17-nov-2026 12:00 h); después, el aviso de contraseña.
+  // Al entrar: primero las Novedades publicadas después de la última visita (si hay); después, el aviso de contraseña.
   const maybeShowPasswordNotice = useCallback(() => {
     if (passwordChanged) return;
     try {
@@ -42,31 +42,23 @@ export function AccountSecurity({ passwordChanged, role, username }: { passwordC
   }, [passwordChanged]);
 
   useEffect(() => {
-    let visto = false;
-    try {
-      visto = !!localStorage.getItem(novedadesKey(username));
-    } catch {
-      /* sin almacenamiento: se muestra */
-    }
+    const nuevas = novedadesNuevas(role, leerUltimaVista(username));
     // eslint-disable-next-line react-hooks/set-state-in-effect -- depende de almacenamiento del navegador (solo cliente)
-    if (debeMostrarNovedades(role, visto)) setNovedades(true);
+    if (nuevas.length > 0) setNovedades({ lista: nuevas, todas: false });
     else maybeShowPasswordNotice();
   }, [role, username, maybeShowPasswordNotice]);
 
   useEffect(() => {
-    const h = () => setNovedades(true); // desde el menú de usuario → "Novedades"
+    const h = () => setNovedades({ lista: novedadesFor(role), todas: true }); // desde el menú de usuario → "Novedades": todas
     window.addEventListener(NOVEDADES_EVENT, h);
     return () => window.removeEventListener(NOVEDADES_EVENT, h);
-  }, []);
+  }, [role]);
 
   function closeNovedades() {
-    setNovedades(false);
-    try {
-      localStorage.setItem(novedadesKey(username), "1");
-    } catch {
-      /* ignorar */
-    }
-    maybeShowPasswordNotice();
+    const eraAutomatico = novedades ? !novedades.todas : false;
+    setNovedades(null);
+    guardarUltimaVista(username); // la próxima vez solo saldrá lo que se publique después de hoy
+    if (eraAutomatico) maybeShowPasswordNotice();
   }
 
   useEffect(() => {
@@ -120,10 +112,10 @@ export function AccountSecurity({ passwordChanged, role, username }: { passwordC
 
   return (
     <>
-      <Modal open={novedades} onClose={closeNovedades} title="Novedades del CRM" icon="✨">
-        <p className="mb-3 text-sm text-slate-600">Esto es lo nuevo que ya puedes usar:</p>
+      <Modal open={!!novedades} onClose={closeNovedades} title="Novedades del CRM" icon="✨">
+        <p className="mb-3 text-sm text-slate-600">{novedades?.todas ? "Esto es lo nuevo que ya puedes usar:" : "Esto es lo nuevo desde tu última visita:"}</p>
         <ul className="flex flex-col gap-3">
-          {novedadesFor(role).map((n) => (
+          {(novedades?.lista ?? []).map((n) => (
             <li key={n.titulo} className="flex gap-3">
               <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-100 text-base" aria-hidden>
                 {n.icono}
