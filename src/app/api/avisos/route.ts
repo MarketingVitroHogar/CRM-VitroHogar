@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/apiGuards";
 import { isOverdue } from "@/lib/leadPolicy";
 import { mexicoTodayAsUTCDate } from "@/lib/dateOnly";
+import { getSeguimientos } from "@/lib/seguimientos";
 
 // Los avisos son SOLO del mes en curso: leads ingresados este mes y ventas cerradas este mes (nada de meses pasados).
 function inicioDelMes(): Date {
@@ -17,6 +18,7 @@ const MAX_VENTAS = 10;
  * Avisos de la campana (solo del mes en curso).
  *  - Gerente: lista de los leads "Nuevos" por atender de SU sucursal (el filtro se aplica aquí, en el servidor).
  *  - Coordinación: resumen por sucursal (cuántos leads sin atender) + ventas cerradas recientes.
+ * También: seguimientos de hoy o vencidos de leads ya contactados (gerente: los suyos con detalle; Coordinación: por sucursal).
  * "Sin atender" = lead en estado "Nuevo"; "atrasado" usa la regla del CRM (más de 24 h). No guarda nada: se calcula al momento.
  */
 export async function GET() {
@@ -40,10 +42,13 @@ export async function GET() {
   const withLate = rows.map((r) => ({ ...r, atrasado: isOverdue({ estado: r.estado, proximoSeguimiento: r.proximoSeguimiento, createdAt: r.createdAt }, now) }));
   const atrasados = withLate.filter((r) => r.atrasado).length;
 
+  const seg = await getSeguimientos(role === "gerente" ? sucursal! : null, 5);
+
   if (role !== "coord") {
     return NextResponse.json({
       total: withLate.length,
       atrasados,
+      seguimientos: { total: seg.total, vencidos: seg.vencidos, items: seg.items },
       items: withLate.slice(0, MAX_ITEMS).map((r) => ({
         id: r.id,
         nombre: r.nombre,
@@ -81,6 +86,7 @@ export async function GET() {
     atrasados,
     items: [],
     porSucursal,
+    seguimientos: { total: seg.total, vencidos: seg.vencidos, porSucursal: seg.porSucursal },
     ventas: ventasRows.map((v) => ({
       id: v.id,
       nombre: v.nombre,

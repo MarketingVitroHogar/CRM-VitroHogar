@@ -10,6 +10,7 @@ import { MetricCard } from "@/components/reports/MetricCard";
 import { TendenciaChart } from "@/components/charts/TendenciaChart";
 import { BarrasH } from "@/components/charts/BarrasH";
 import { PorAsignarLista } from "@/components/inicio/PorAsignarLista";
+import { AutoRefresh } from "@/components/ui/AutoRefresh";
 
 export const dynamic = "force-dynamic";
 
@@ -115,6 +116,7 @@ export default async function InicioPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <AutoRefresh />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-slate-900">
@@ -208,7 +210,7 @@ export default async function InicioPage() {
             <Tarea
               titulo="Seguimientos de hoy"
               total={seguimientos.total}
-              detalle="Para hoy o ya vencidos"
+              detalle={seguimientos.vencidos > 0 ? `${seguimientos.vencidos} vencidos · leads ya contactados` : "Para hoy · leads ya contactados"}
               tono={seguimientos.items.some((s) => s.vencido) ? "urgente" : seguimientos.total > 0 ? "pendiente" : "listo"}
             >
               <ul className="divide-y divide-slate-100">

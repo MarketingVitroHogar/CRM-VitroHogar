@@ -5,6 +5,7 @@ import { isOverdue } from "@/lib/leadPolicy";
 import { mexicoTodayAsUTCDate } from "@/lib/dateOnly";
 import { asesoresFor, SUCURSALES } from "@/lib/catalogs";
 import { KANBAN_COLUMNS, columnOf } from "@/lib/kanban";
+import { getSeguimientos } from "@/lib/seguimientos";
 
 type U = { role: Role; sucursal: Sucursal | null };
 
@@ -83,17 +84,8 @@ export async function getInicio(user: U) {
     return [...m.values()].sort((a, b) => b.atrasados - a.atrasados || b.total - a.total);
   };
 
-  // ---- Seguimientos de hoy o vencidos (leads abiertos ingresados este mes) ----
-  const pendWhere = { ...sucWhere, fecha: delMes, proximoSeguimiento: { lt: manana }, estado: ABIERTO };
-  const [seguimientosTotal, seguimientosRows] = await Promise.all([
-    prisma.lead.count({ where: pendWhere }),
-    prisma.lead.findMany({
-      where: pendWhere,
-      orderBy: { proximoSeguimiento: "asc" },
-      take: 6,
-      select: { id: true, nombre: true, estado: true, sucursal: true, asesor: true, proximoSeguimiento: true },
-    }),
-  ]);
+  // ---- Seguimientos de hoy o vencidos (leads ya contactados, ingresados este mes): los mismos que cuenta la campana ----
+  const seguimientos = await getSeguimientos(scope, 6);
 
   // ---- Ventas cerradas este mes (las más recientes) ----
   const ventasRows = await prisma.lead.findMany({
@@ -160,18 +152,7 @@ export async function getInicio(user: U) {
     anteriores,
     sinAsignar: { total: sinAsignar.length, items: sinAsignar.slice(0, 8), porSucursal: agrupar(sinAsignar) },
     sinAtender: { total: sinAtender.length, atrasados: sinAtender.filter((l) => l.atrasado).length, items: sinAtender.slice(0, 8), porSucursal: agrupar(sinAtender) },
-    seguimientos: {
-      total: seguimientosTotal,
-      items: seguimientosRows.map((l) => ({
-        id: l.id,
-        nombre: l.nombre,
-        estado: l.estado,
-        sucursal: l.sucursal,
-        asesor: l.asesor,
-        seguimiento: l.proximoSeguimiento!.toISOString().slice(0, 10),
-        vencido: l.proximoSeguimiento!.getTime() < hoy.getTime(),
-      })),
-    },
+    seguimientos: { total: seguimientos.total, vencidos: seguimientos.vencidos, items: seguimientos.items },
     ventasRecientes: ventasRows.map((v) => ({
       id: v.id,
       nombre: v.nombre,

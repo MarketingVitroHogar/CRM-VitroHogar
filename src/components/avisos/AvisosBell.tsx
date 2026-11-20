@@ -7,11 +7,16 @@ import type { Fuente, Role, Sucursal } from "@prisma/client";
 import { useToast } from "@/components/ui/Toast";
 import { FUENTE_LABELS, SUCURSAL_LABELS } from "@/lib/catalogs";
 import { AsignarDialog, type AsignarLead } from "@/components/leads/AsignarDialog";
+import { formatDateOnly } from "@/lib/dateOnly";
+import { guardarPref, leerPref, notificar, pedirPermiso, permisoNotif, sonar, type AvisosPref, type PermisoNotif } from "@/lib/avisosPref";
 
 type Item = { id: string; nombre: string; telefono: string; interes: string; sucursal: Sucursal; fuente: Fuente; asesor?: string | null; createdAt: string; atrasado: boolean };
 type PorSucursal = { sucursal: Sucursal; total: number; atrasados: number };
 type Venta = { id: string; nombre: string; sucursal: Sucursal; monto: string | null; folioFactura: string | null; cerradaAt: string };
-type Data = { total: number; atrasados: number; items: Item[]; porSucursal?: PorSucursal[]; ventas?: Venta[] };
+type SegItem = { id: string; nombre: string; estado: string; sucursal: Sucursal; asesor: string | null; seguimiento: string; vencido: boolean };
+type SegPorSuc = { sucursal: Sucursal; total: number; vencidos: number };
+type Seguimientos = { total: number; vencidos: number; items?: SegItem[]; porSucursal?: SegPorSuc[] };
+type Data = { total: number; atrasados: number; items: Item[]; porSucursal?: PorSucursal[]; ventas?: Venta[]; seguimientos?: Seguimientos };
 
 const POLL_MS = 60_000;
 const money = (v: string | null) => (v == null ? "" : "$" + Math.round(Number(v)).toLocaleString("es-MX"));
@@ -25,6 +30,7 @@ function hace(iso: string): string {
 
 const seenKey = (username: string) => `crm:ventas-vistas:${username}`;
 const leidosKey = (username: string) => `crm:avisos-leidos:${username}`; // cuántos leads sin atender ya se marcaron como leídos
+const leidosSegKey = (username: string) => `crm:avisos-leidos-seg:${username}`; // ídem, seguimientos
 
 /**
  * Campana de avisos. Se actualiza sola cada minuto. "Marcar todo como leído" apaga el número rojo de la campana
@@ -40,17 +46,40 @@ export function AvisosBell({ role, username }: { role: Role; username: string })
   const boxRef = useRef<HTMLDivElement>(null);
   const seen = useRef<Set<string> | null>(null);
   const seenSales = useRef<Set<string> | null>(null);
+  const prevPorSuc = useRef<Map<string, number> | null>(null);
+  const prefRef = useRef<AvisosPref>({ notif: false, sonido: false });
   const [open, setOpen] = useState(false);
   const [asignando, setAsignando] = useState<AsignarLead | null>(null);
   const [data, setData] = useState<Data>({ total: 0, atrasados: 0, items: [] });
   // Hora (ms) hasta la que Coordinación ya vio las ventas cerradas. Se guarda en su navegador.
   const [vistasHasta, setVistasHasta] = useState<number>(() => Date.now());
-  // Cuántos de los leads sin atender actuales ya se marcaron como leídos.
+  // Cuántos de los leads sin atender actuales ya se marcaron como leídos (y lo mismo para los seguimientos).
   const [leidos, setLeidos] = useState(0);
+  const [leidosSeg, setLeidosSeg] = useState(0);
+  // Avisos del navegador y sonido (preferencia de cada persona).
+  const [pref, setPref] = useState<AvisosPref>({ notif: false, sonido: false });
+  const [permiso, setPermiso] = useState<PermisoNotif>("default");
+  useEffect(() => {
+    prefRef.current = pref;
+  });
+  const avisar = useCallback((titulo: string, cuerpo: string) => {
+    if (prefRef.current.sonido) sonar();
+    if (prefRef.current.notif) notificar(titulo, cuerpo);
+  }, []);
   const guardarLeidos = useCallback(
     (n: number) => {
       try {
         localStorage.setItem(leidosKey(username), String(n));
+      } catch {
+        /* sin almacenamiento */
+      }
+    },
+    [username]
+  );
+  const guardarLeidosSeg = useCallback(
+    (n: number) => {
+      try {
+        localStorage.setItem(leidosSegKey(username), String(n));
       } catch {
         /* sin almacenamiento */
       }
@@ -65,15 +94,40 @@ export function AvisosBell({ role, username }: { role: Role; username: string })
       const d: Data = await res.json();
       if (seen.current) {
         const nuevos = d.items.filter((i) => !seen.current!.has(i.id));
-        if (nuevos.length === 1) toast(`🔔 Llegó un lead nuevo: ${nuevos[0].nombre}`);
-        else if (nuevos.length > 1) toast(`🔔 Llegaron ${nuevos.length} leads nuevos`);
+        if (nuevos.length === 1) {
+          toast(`🔔 Llegó un lead nuevo: ${nuevos[0].nombre}`);
+          avisar("Lead nuevo", `${nuevos[0].nombre} · ${FUENTE_LABELS[nuevos[0].fuente]}`);
+        } else if (nuevos.length > 1) {
+          toast(`🔔 Llegaron ${nuevos.length} leads nuevos`);
+          avisar("Leads nuevos", `Llegaron ${nuevos.length} leads nuevos`);
+        }
       }
       seen.current = new Set(d.items.map((i) => i.id));
+      // Coordinación no recibe la lista, solo los totales por sucursal: un aumento = llegaron leads nuevos.
+      if (d.porSucursal) {
+        const ahora = new Map(d.porSucursal.map((s) => [s.sucursal as string, s.total]));
+        if (prevPorSuc.current) {
+          const subieron = d.porSucursal.filter((s) => s.total > (prevPorSuc.current!.get(s.sucursal) ?? 0));
+          if (subieron.length > 0) {
+            const n = subieron.reduce((a, s) => a + s.total - (prevPorSuc.current!.get(s.sucursal) ?? 0), 0);
+            const donde = subieron.map((s) => SUCURSAL_LABELS[s.sucursal]).join(", ");
+            toast(`🔔 ${n === 1 ? "Llegó un lead nuevo" : `Llegaron ${n} leads nuevos`} (${donde})`);
+            avisar(n === 1 ? "Lead nuevo" : "Leads nuevos", `${n === 1 ? "Llegó un lead nuevo" : `Llegaron ${n} leads nuevos`} en ${donde}`);
+          }
+        }
+        prevPorSuc.current = ahora;
+      }
       if (d.ventas) {
         if (seenSales.current) {
           const nuevas = d.ventas.filter((v) => !seenSales.current!.has(v.id));
-          if (nuevas.length === 1) toast(`💰 Venta cerrada: ${nuevas[0].nombre}${nuevas[0].monto ? " · " + money(nuevas[0].monto) : ""} (${SUCURSAL_LABELS[nuevas[0].sucursal]})`);
-          else if (nuevas.length > 1) toast(`💰 Se cerraron ${nuevas.length} ventas`);
+          if (nuevas.length === 1) {
+            const txt = `${nuevas[0].nombre}${nuevas[0].monto ? " · " + money(nuevas[0].monto) : ""} (${SUCURSAL_LABELS[nuevas[0].sucursal]})`;
+            toast(`💰 Venta cerrada: ${txt}`);
+            avisar("Venta cerrada", txt);
+          } else if (nuevas.length > 1) {
+            toast(`💰 Se cerraron ${nuevas.length} ventas`);
+            avisar("Ventas cerradas", `Se cerraron ${nuevas.length} ventas`);
+          }
         }
         seenSales.current = new Set(d.ventas.map((v) => v.id));
       }
@@ -84,19 +138,32 @@ export function AvisosBell({ role, username }: { role: Role; username: string })
         if (n !== prev) guardarLeidos(n);
         return n;
       });
+      const totalSeg = d.seguimientos?.total ?? 0;
+      setLeidosSeg((prev) => {
+        const n = Math.min(prev, totalSeg);
+        if (n !== prev) guardarLeidosSeg(n);
+        return n;
+      });
     } catch {
       /* sin red: se reintenta en el siguiente ciclo */
     }
-  }, [toast, guardarLeidos]);
+  }, [toast, guardarLeidos, guardarLeidosSeg, avisar]);
 
   useEffect(() => {
     try {
       const n = Number(localStorage.getItem(leidosKey(username)) ?? 0);
       // eslint-disable-next-line react-hooks/set-state-in-effect -- preferencia guardada en el navegador (solo cliente)
       if (Number.isFinite(n) && n > 0) setLeidos(n);
+      const ns = Number(localStorage.getItem(leidosSegKey(username)) ?? 0);
+      if (Number.isFinite(ns) && ns > 0) setLeidosSeg(ns);
     } catch {
       /* sin almacenamiento */
     }
+    const p = leerPref(username);
+    const permisoActual = permisoNotif();
+    setPermiso(permisoActual);
+    // Si el navegador ya no tiene el permiso, el aviso del sistema queda apagado.
+    setPref(permisoActual === "granted" ? p : { ...p, notif: false });
     if (coord) {
       try {
         const saved = localStorage.getItem(seenKey(username));
@@ -132,8 +199,10 @@ export function AvisosBell({ role, username }: { role: Role; username: string })
 
   const ventasNuevas = coord ? (data.ventas ?? []).filter((v) => new Date(v.cerradaAt).getTime() > vistasHasta).length : 0;
   const sinLeer = Math.max(0, data.total - leidos);
-  const badge = sinLeer + ventasNuevas;
-  const rojo = (sinLeer > 0 && data.atrasados > 0) || ventasNuevas > 0;
+  const seg = data.seguimientos;
+  const segSinLeer = Math.max(0, (seg?.total ?? 0) - leidosSeg);
+  const badge = sinLeer + segSinLeer + ventasNuevas;
+  const rojo = (sinLeer > 0 && data.atrasados > 0) || (segSinLeer > 0 && (seg?.vencidos ?? 0) > 0) || ventasNuevas > 0;
 
   function markSalesSeen() {
     const latest = Math.max(Date.now(), ...(data.ventas ?? []).map((v) => new Date(v.cerradaAt).getTime()));
@@ -145,9 +214,29 @@ export function AvisosBell({ role, username }: { role: Role; username: string })
     }
   }
 
+  function actualizarPref(p: AvisosPref) {
+    setPref(p);
+    guardarPref(username, p);
+  }
+
+  async function cambiarNotif(activar: boolean) {
+    if (!activar) return actualizarPref({ ...pref, notif: false });
+    const p = await pedirPermiso(); // el navegador pregunta; debe salir de un clic
+    setPermiso(p);
+    actualizarPref({ ...pref, notif: p === "granted" });
+    if (p === "granted") notificar("Avisos activados", "Así te avisaremos cuando llegue un lead nuevo.");
+  }
+
+  function cambiarSonido(activar: boolean) {
+    if (activar) sonar(); // suena una vez para comprobarlo (y el navegador permite el audio)
+    actualizarPref({ ...pref, sonido: activar });
+  }
+
   function marcarTodoLeido() {
     setLeidos(data.total);
     guardarLeidos(data.total);
+    setLeidosSeg(seg?.total ?? 0);
+    guardarLeidosSeg(seg?.total ?? 0);
     if (coord) markSalesSeen();
   }
 
@@ -158,7 +247,7 @@ export function AvisosBell({ role, username }: { role: Role; username: string })
           setOpen((o) => !o);
           if (!open) load();
         }}
-        aria-label={`Avisos: ${badge === 0 ? "todo leído" : `${badge} sin leer`}; ${data.total} leads sin atender${data.atrasados ? `, ${data.atrasados} con más de 24 h` : ""}${ventasNuevas ? `, ${ventasNuevas} ventas cerradas nuevas` : ""}`}
+        aria-label={`Avisos: ${badge === 0 ? "todo leído" : `${badge} sin leer`}; ${data.total} leads sin atender${data.atrasados ? `, ${data.atrasados} con más de 24 h` : ""}${seg?.total ? `, ${seg.total} seguimientos para hoy o vencidos` : ""}${ventasNuevas ? `, ${ventasNuevas} ventas cerradas nuevas` : ""}`}
         aria-expanded={open}
         className="relative grid h-9 w-9 place-items-center rounded-md text-slate-600 hover:bg-slate-100"
       >
@@ -214,6 +303,32 @@ export function AvisosBell({ role, username }: { role: Role; username: string })
                     </button>
                   ))
                 )}
+
+                {/* Seguimientos de hoy o vencidos, por sucursal */}
+                <div className="border-b border-t border-slate-100 bg-slate-50 px-4 py-2.5">
+                  <p className="text-sm font-semibold text-slate-900">Seguimientos de hoy o vencidos</p>
+                  <p className="text-xs text-slate-500">
+                    {!seg || seg.total === 0 ? "Ninguno por ahora." : `${seg.total} en total${seg.vencidos ? ` · ${seg.vencidos} vencidos` : ""} · leads ya contactados`}
+                  </p>
+                </div>
+                {(seg?.porSucursal ?? []).map((s) => (
+                  <button
+                    key={s.sucursal}
+                    onClick={() => {
+                      setOpen(false);
+                      router.push(`/leads?sucursal=${s.sucursal}`);
+                    }}
+                    className="flex w-full items-center justify-between gap-3 border-b border-slate-100 px-4 py-2.5 text-left hover:bg-slate-50"
+                  >
+                    <span className="text-sm font-medium text-slate-800">{SUCURSAL_LABELS[s.sucursal]}</span>
+                    <span className="text-right text-sm">
+                      <span className="font-bold text-slate-900">
+                        {s.total} <span className="font-normal text-slate-500">seguimientos</span>
+                      </span>
+                      {s.vencidos > 0 && <span className="block text-[11px] font-semibold text-red-600">{s.vencidos} vencidos</span>}
+                    </span>
+                  </button>
+                ))}
 
                 {/* Ventas cerradas */}
                 <div className="border-b border-t border-slate-100 bg-slate-50 px-4 py-2.5">
@@ -303,8 +418,64 @@ export function AvisosBell({ role, username }: { role: Role; username: string })
                     </div>
                   ))
                 )}
+
+                {/* Seguimientos de hoy o vencidos */}
+                <div className="border-b border-t border-slate-100 bg-slate-50 px-4 py-2.5">
+                  <p className="text-sm font-semibold text-slate-900">Seguimientos de hoy o vencidos</p>
+                  <p className="text-xs text-slate-500">
+                    {!seg || seg.total === 0 ? "Ninguno por ahora." : `${seg.total} en total${seg.vencidos ? ` · ${seg.vencidos} vencidos` : ""} · leads ya contactados`}
+                  </p>
+                </div>
+                {(seg?.items ?? []).map((l) => (
+                  <button
+                    key={l.id}
+                    onClick={() => {
+                      setOpen(false);
+                      router.push(`/leads?editar=${l.id}`);
+                    }}
+                    className="flex w-full items-start justify-between gap-3 border-b border-slate-100 px-4 py-2.5 text-left hover:bg-slate-50"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold text-slate-900">{l.nombre}</span>
+                      <span className="block truncate text-xs text-slate-500">
+                        {l.estado === "COTIZACION" || l.estado === "SEGUIMIENTO" ? "Cotización" : "Contactado"}
+                        {l.asesor ? ` · ${l.asesor.split(" ")[0]}` : ""}
+                      </span>
+                    </span>
+                    <span className={clsx("shrink-0 text-xs", l.vencido ? "font-semibold text-red-600" : "text-slate-500")}>
+                      {l.vencido ? "Vencido " : "Hoy "}
+                      {formatDateOnly(l.seguimiento, "d MMM")}
+                    </span>
+                  </button>
+                ))}
+                {seg && seg.total > (seg.items?.length ?? 0) && (
+                  <button
+                    onClick={() => {
+                      setOpen(false);
+                      router.push("/inicio");
+                    }}
+                    className="w-full px-4 py-2.5 text-center text-xs font-semibold text-brand hover:bg-slate-50"
+                  >
+                    Ver todos en Inicio
+                  </button>
+                )}
               </>
             )}
+
+            {/* Avisos del navegador y sonido (cada persona elige) */}
+            <div className="border-t border-slate-100 bg-slate-50 px-4 py-2.5 text-xs text-slate-600">
+              <label className="flex min-h-8 cursor-pointer items-center justify-between gap-3">
+                <span>Avisarme en el navegador cuando llegue un lead</span>
+                <input type="checkbox" checked={pref.notif} disabled={permiso === "unsupported"} onChange={(e) => void cambiarNotif(e.target.checked)} className="h-4 w-4 shrink-0" />
+              </label>
+              <label className="flex min-h-8 cursor-pointer items-center justify-between gap-3">
+                <span>Sonido al llegar un lead</span>
+                <input type="checkbox" checked={pref.sonido} onChange={(e) => cambiarSonido(e.target.checked)} className="h-4 w-4 shrink-0" />
+              </label>
+              {permiso === "denied" && <p className="mt-1 text-amber-700">Tu navegador bloqueó los avisos. Actívalos desde el candado de la barra de direcciones → Notificaciones.</p>}
+              {permiso === "unsupported" && <p className="mt-1 text-slate-500">Este navegador no admite avisos del sistema.</p>}
+              <p className="mt-1 text-slate-400">Funcionan mientras el CRM esté abierto en una pestaña.</p>
+            </div>
           </div>
         </div>
       )}

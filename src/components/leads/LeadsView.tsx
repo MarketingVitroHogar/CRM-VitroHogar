@@ -177,6 +177,22 @@ export function LeadsView({ role }: { role: Role }) {
     fetchPorAsignar();
   }, [fetchPorAsignar]);
 
+  // La lista se actualiza sola cada minuto y al volver a la pestaña (no mientras haya un panel o diálogo abierto).
+  useEffect(() => {
+    const refrescar = () => {
+      if (document.hidden) return;
+      if (document.querySelector("[role=dialog]")) return;
+      void fetchLeads(true);
+      void fetchPorAsignar();
+    };
+    const t = setInterval(refrescar, 60_000);
+    document.addEventListener("visibilitychange", refrescar);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", refrescar);
+    };
+  }, [fetchLeads, fetchPorAsignar]);
+
   // Si se asigna un lead desde otra pantalla (la campana), esta lista se actualiza sola.
   useEffect(() => {
     const onChanged = () => {

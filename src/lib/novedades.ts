@@ -7,11 +7,24 @@ import type { Role } from "@prisma/client";
  * Para anunciar un cambio: agrega la entrada ARRIBA de la lista con una `v` nueva (mayor que las anteriores,
  * p. ej. "2026-11-22") y sube NOVEDADES_VERSION a ese mismo valor. No hay nada más que tocar.
  */
-export const NOVEDADES_VERSION = "2026-11-21";
+export const NOVEDADES_VERSION = "2026-11-22";
 
 export type Novedad = { icono: string; titulo: string; texto: string; v: string; roles?: Role[] };
 
 export const NOVEDADES: Novedad[] = [
+  {
+    icono: "🔔",
+    titulo: "Seguimientos en la campana y avisos en el navegador",
+    v: "2026-11-22",
+    texto:
+      "La campana ahora también te avisa de los seguimientos de hoy o vencidos de los leads que ya contactaste. Además, en el menú de la campana puedes activar un aviso del navegador y un sonido para enterarte al momento cuando llega un lead nuevo, aunque estés en otra pestaña (funciona mientras el CRM esté abierto).",
+  },
+  {
+    icono: "🔄",
+    titulo: "Las pantallas se actualizan solas",
+    v: "2026-11-22",
+    texto: "Leads e Inicio se actualizan solos cada minuto, para que veas los leads nuevos y los cambios sin tener que recargar la página.",
+  },
   {
     icono: "✏️",
     titulo: "Editar un lead en un panel lateral",
