@@ -10,6 +10,11 @@ export type Novedad = { icono: string; titulo: string; texto: string; roles?: Ro
 
 export const NOVEDADES: Novedad[] = [
   {
+    icono: "👩‍💼",
+    titulo: "Nueva asesora en López Mateos",
+    texto: "Karen Paola Ponce Reyes ya aparece entre los asesores de la sucursal López Mateos, para que el gerente le pueda asignar leads.",
+  },
+  {
     icono: "⏰",
     titulo: "Filtro “Sin seguimiento” en Leads",
     texto:
