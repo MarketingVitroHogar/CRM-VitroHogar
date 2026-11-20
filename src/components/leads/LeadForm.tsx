@@ -11,6 +11,7 @@ import {
   FUENTE_LABELS,
   ESTADOS,
   ESTADO_LABELS,
+  ESTADOS_HISTORICOS,
   asesoresFor,
 } from "@/lib/catalogs";
 import { responsableOptionsFor, defaultResponsableFor } from "@/lib/leadPolicy";
@@ -166,7 +167,6 @@ export function LeadForm({
     const basePayload: Record<string, unknown> = {
       ...(values.estado ? { estado: values.estado } : {}),
       responsable: values.responsable,
-      asesor: values.asesor || null,
       proximoSeguimiento: values.proximoSeguimiento || null,
       notas: values.notas,
       folioCotizacion: values.folioCotizacion || null,
@@ -174,6 +174,9 @@ export function LeadForm({
       montoVenta: values.montoVenta === "" ? null : Number(values.montoVenta),
       fechaCierre: values.fechaCierre || null,
     };
+
+    // El asesor lo asigna solo el gerente; Coordinación no lo envía.
+    if (!isCoord) basePayload.asesor = values.asesor || null;
 
     const payload = canEditCoreFields
       ? {
@@ -316,7 +319,7 @@ export function LeadForm({
           <label className={labelClass}>Estado</label>
           <select className={inputClass} {...register("estado")}>
             {!isCoord && lead?.estado === "NUEVO" && <option value="">Sin cambio (sigue en Nuevo)</option>}
-            {ESTADOS.map((e) => (
+            {[...ESTADOS, ...ESTADOS_HISTORICOS.filter((h) => h === lead?.estado)].map((e) => (
               <option key={e} value={e} disabled={e === "NUEVO" && !isCoord}>
                 {ESTADO_LABELS[e]}
               </option>
@@ -340,20 +343,26 @@ export function LeadForm({
           </select>
         </div>
 
-        <div>
-          <label className={labelClass}>Asesor asignado</label>
-          <select className={inputClass + (!isCoord && lead && !lead.asesor ? " border-amber-400 ring-1 ring-amber-300" : "")} {...register("asesor")}>
-            <option value="">— Sin asignar —</option>
-            {asesorOptions.map((a) => (
-              <option key={a} value={a}>
-                {a}
-              </option>
-            ))}
-          </select>
-          {asesorOptions.length === 0 && (
-            <p className="mt-1 text-xs text-slate-400">Esta sucursal aún no tiene asesores registrados.</p>
-          )}
-        </div>
+        {isCoord ? (
+          <div>
+            <label className={labelClass}>Asesor asignado</label>
+            <p className="rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700">{lead?.asesor || "Sin asignar"}</p>
+            <p className="mt-1 text-xs text-slate-400">Lo asigna el gerente de la sucursal.</p>
+          </div>
+        ) : (
+          <div>
+            <label className={labelClass}>Asesor asignado</label>
+            <select className={inputClass + (lead && !lead.asesor ? " border-amber-400 ring-1 ring-amber-300" : "")} {...register("asesor")}>
+              <option value="">— Sin asignar —</option>
+              {asesorOptions.map((a) => (
+                <option key={a} value={a}>
+                  {a}
+                </option>
+              ))}
+            </select>
+            {asesorOptions.length === 0 && <p className="mt-1 text-xs text-slate-400">Esta sucursal aún no tiene asesores registrados.</p>}
+          </div>
+        )}
 
         <div>
           <label className={labelClass}>Próximo seguimiento</label>

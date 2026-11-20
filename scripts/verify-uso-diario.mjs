@@ -75,6 +75,7 @@ async function main() {
   check("Coordinación sí puede regresar a Nuevo → 200", (await coord.json(`/api/leads/${l1.id}`, "PATCH", { estado: "NUEVO" })).status === 200);
 
   console.log("\n== Kanban: el gerente asigna asesor al mover (servidor) ==");
+  for (const n of [1, 2]) await coord.json("/api/leads", "POST", { nombre: `Kanban asignar ${n}`, telefono: `492 65${n} ${Date.now().toString().slice(-4)}`, fuente: "FACEBOOK", sucursal: "BLVD_ZACATECAS" });
   const sinAsesor = (await blvd.json("/api/leads")).body.leads.find((l) => l.estado === "NUEVO" && !l.asesor);
   check("hay un lead sin asesor en Blvd. Zacatecas para probar", !!sinAsesor);
   check("asesor de OTRA sucursal → 400", (await blvd.json(`/api/leads/${sinAsesor.id}`, "PATCH", { estado: "CONTACTADO", asesor: "Saray Salgado" })).status === 400);

@@ -55,9 +55,15 @@ async function main() {
   const blvd = await as("gerente.blvd_zacatecas");
   const ids = [];
   const mk = async (extra) => {
-    const r = await coord.json("/api/leads", "POST", { nombre: "Lead Reporte", telefono: "4920002222", sucursal: "COLON", interes: TAG, fuente: "FACEBOOK", fecha: D(0), ...extra });
+    // Coordinación no asigna asesor: si el dato lo trae, lo asigna después el gerente de Blvd. Zacatecas.
+    const { asesor, ...resto } = extra;
+    const r = await coord.json("/api/leads", "POST", { nombre: "Lead Reporte", telefono: "4920002222", sucursal: "COLON", interes: TAG, fuente: "FACEBOOK", fecha: D(0), ...resto });
     if (r.status !== 201) throw new Error("no se pudo crear: " + JSON.stringify(r.body));
     ids.push(r.body.lead.id);
+    if (asesor) {
+      const a = await blvd.json(`/api/leads/${r.body.lead.id}`, "PATCH", { asesor });
+      if (a.status !== 200) throw new Error("no se pudo asignar asesor: " + JSON.stringify(a.body));
+    }
     return r.body.lead.id;
   };
   // Periodo actual = últimos 7 días; periodo anterior = los 7 días previos
@@ -69,13 +75,13 @@ async function main() {
 
   // Datos de prueba conocidos (Colón, salvo uno de Blvd.)
   await mk({ fecha: D(-1), fuente: "TIKTOK" }); // Nuevo
-  await mk({ fecha: D(-2), fuente: "TIKTOK", estado: "SEGUIMIENTO", proximoSeguimiento: D(3) }); // Seguimiento → cuenta como Cotización
+  await mk({ fecha: D(-2), fuente: "TIKTOK", estado: "COTIZACION", proximoSeguimiento: D(3) }); // (antes Seguimiento: ya es un estado histórico y no se puede crear) → Cotización
   await mk({ fecha: D(-3), fuente: "SITIO_WEB", estado: "COTIZACION" });
   await mk({ fecha: D(-4), fuente: "WHATSAPP", estado: "VENTA", montoVenta: 1000, fechaCierre: D(-2) });
   await mk({ fecha: D(-5), fuente: "INSTAGRAM", estado: "VENTA", montoVenta: 3000, fechaCierre: D(-1) });
   await mk({ fecha: D(-3), fuente: "FACEBOOK", estado: "PERDIDO", fechaCierre: D(-1) });
   await mk({ fecha: D(-10), fuente: "INSTAGRAM" }); // periodo anterior
-  await mk({ fecha: D(-1), estado: "NO_RESPONDIO", proximoSeguimiento: D(2) }); // No respondió → cuenta como Contactado
+  await mk({ fecha: D(-1), estado: "CONTACTADO", proximoSeguimiento: D(2) }); // (antes No respondió: ya es histórico) → Contactado
   await mk({ fecha: D(-1), sucursal: "BLVD_ZACATECAS", asesor: "Genaro Samuel Alvarado Melesio", estado: "VENTA", montoVenta: 500, fechaCierre: D(0) });
 
   const despues = await rep(colon);

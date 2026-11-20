@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Fuente, Sucursal } from "@prisma/client";
-import { FUENTES, FUENTE_LABELS, SUCURSALES, SUCURSAL_LABELS, ESTADO_LABELS, asesoresFor } from "@/lib/catalogs";
+import { FUENTES, FUENTE_LABELS, SUCURSALES, SUCURSAL_LABELS, ESTADO_LABELS } from "@/lib/catalogs";
 import { formatDateOnly } from "@/lib/dateOnly";
 import { formatTelefono, soloDigitos, telefonoValido } from "@/lib/telefono";
 import { useToast } from "@/components/ui/Toast";
@@ -18,7 +18,7 @@ const label = "mb-1 block text-sm font-medium text-slate-700";
 /**
  * Alta rápida de un lead (solo Coordinación): nombre, teléfono, interés, canal y sucursal.
  * Todo lo demás se completa solo: fecha de hoy, estado "Nuevo" y responsable = gerente de la sucursal.
- * El asesor lo asigna después el gerente (o se puede elegir aquí en "Más opciones").
+ * El asesor NO se elige aquí: lo asigna después el gerente de la sucursal.
  */
 export function NewLeadForm() {
   const router = useRouter();
@@ -29,7 +29,6 @@ export function NewLeadForm() {
   const [interes, setInteres] = useState("");
   const [fuente, setFuente] = useState<Fuente | "">("");
   const [sucursal, setSucursal] = useState<Sucursal | "">("");
-  const [asesor, setAsesor] = useState("");
   const [notas, setNotas] = useState("");
   const [fecha, setFecha] = useState("");
   const [masOpciones, setMasOpciones] = useState(false);
@@ -76,8 +75,6 @@ export function NewLeadForm() {
     };
   }, [telefono]);
 
-  const asesorOptions = sucursal ? asesoresFor(sucursal) : [];
-
   async function save(otro: boolean) {
     setError(null);
     if (nombre.trim().length < 2) return setError("Escribe el nombre del cliente.");
@@ -89,7 +86,6 @@ export function NewLeadForm() {
     setSaving(otro ? "otro" : "uno");
     try {
       const body: Record<string, unknown> = { nombre: nombre.trim(), telefono: formatTelefono(telefono), interes: interes.trim(), fuente, sucursal };
-      if (asesor) body.asesor = asesor;
       if (notas.trim()) body.notas = notas.trim();
       if (fecha) body.fecha = fecha;
       const res = await fetch("/api/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -110,7 +106,6 @@ export function NewLeadForm() {
         setNombre("");
         setTelefono("");
         setInteres("");
-        setAsesor("");
         setNotas("");
         setFecha("");
         setDups([]);
@@ -209,10 +204,7 @@ export function NewLeadForm() {
             id="nl-suc"
             className={input}
             value={sucursal}
-            onChange={(e) => {
-              setSucursal(e.target.value as Sucursal);
-              setAsesor("");
-            }}
+            onChange={(e) => setSucursal(e.target.value as Sucursal)}
           >
             <option value="">Elige la sucursal…</option>
             {SUCURSALES.map((s) => (
@@ -230,24 +222,10 @@ export function NewLeadForm() {
 
       <div>
         <button type="button" onClick={() => setMasOpciones((v) => !v)} aria-expanded={masOpciones} className="min-h-10 text-sm font-semibold text-brand hover:underline">
-          {masOpciones ? "▾ Menos opciones" : "▸ Más opciones (asesor, notas, fecha)"}
+          {masOpciones ? "▾ Menos opciones" : "▸ Más opciones (notas, fecha)"}
         </button>
         {masOpciones && (
           <div className="mt-2 grid grid-cols-1 gap-4 rounded-lg bg-slate-50 p-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="nl-ases" className={label}>
-                Asesor (opcional)
-              </label>
-              <select id="nl-ases" className={input} value={asesor} onChange={(e) => setAsesor(e.target.value)} disabled={!sucursal || asesorOptions.length === 0}>
-                <option value="">— Lo asigna el gerente —</option>
-                {asesorOptions.map((a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
-                ))}
-              </select>
-              {sucursal && asesorOptions.length === 0 && <p className="mt-1 text-xs text-slate-400">Esta sucursal aún no tiene asesores registrados.</p>}
-            </div>
             <div>
               <label htmlFor="nl-fecha" className={label}>
                 Fecha de ingreso <span className="font-normal text-slate-400">(vacío = hoy)</span>

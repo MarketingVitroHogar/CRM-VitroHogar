@@ -56,7 +56,8 @@ async function main() {
   const A = await mkId({ nombre: "José Ángel Peña Ñandú", telefono: "492 123 4567", fecha: HOY, interes: "Piso laminado " + TAG });
   const B = await mkId({ nombre: "Beatriz Luna Prueba", telefono: "492 555 0002", fecha: AYER });
   const C = await mkId({ nombre: "Carlos Hace Ocho", telefono: "492 555 0003", fecha: HACE8 });
-  const D = await mkId({ nombre: "Diana Con Folio", telefono: "492 555 0004", fecha: HOY, sucursal: "BLVD_ZACATECAS", asesor: "Genaro Samuel Alvarado Melesio", estado: "VENTA", folioFactura: "FAC-TEST-9001", montoVenta: 1500 });
+  const D = await mkId({ nombre: "Diana Con Folio", telefono: "492 555 0004", fecha: HOY, sucursal: "BLVD_ZACATECAS", estado: "VENTA", folioFactura: "FAC-TEST-9001", montoVenta: 1500 });
+  await blvd.json(`/api/leads/${D}`, "PATCH", { asesor: "Genaro Samuel Alvarado Melesio" }); // Coordinación no asigna asesor: lo hace el gerente
   const q = async (c, qs) => (await c.json("/api/leads?" + qs)).body;
   const idsOf = (b) => (b.leads ?? []).map((l) => l.id);
   const mine = (b) => idsOf(b).filter((id) => ids.includes(id));

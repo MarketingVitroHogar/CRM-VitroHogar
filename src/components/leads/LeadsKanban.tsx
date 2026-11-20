@@ -197,7 +197,7 @@ export function LeadsKanban({
                           <span className="truncate" title={l.asesor}>
                             {l.asesor.split(" ").slice(0, 2).join(" ")}
                           </span>
-                        ) : l.estado === "VENTA" || l.estado === "PERDIDO" ? (
+                        ) : l.estado === "VENTA" || l.estado === "PERDIDO" || role !== "gerente" ? (
                           <span>Sin asesor</span>
                         ) : (
                           <button

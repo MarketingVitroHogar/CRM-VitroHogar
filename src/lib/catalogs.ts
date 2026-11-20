@@ -48,22 +48,18 @@ export const FUENTE_LABELS: Record<Fuente, string> = {
   OTRO: "Otro (histórico)",
 };
 
-export const ESTADOS: Estado[] = [
-  "NUEVO",
-  "CONTACTADO",
-  "COTIZACION",
-  "SEGUIMIENTO",
-  "NO_RESPONDIO",
-  "VENTA",
-  "PERDIDO",
-];
+// Estados con los que se trabaja hoy. "Seguimiento" y "No respondió" son HISTÓRICOS: solo los conservan
+// los leads que ya los tenían; no se pueden elegir de nuevo (igual que los canales Referido y Otro).
+export const ESTADOS: Estado[] = ["NUEVO", "CONTACTADO", "COTIZACION", "VENTA", "PERDIDO"];
+export const ESTADOS_HISTORICOS: Estado[] = ["SEGUIMIENTO", "NO_RESPONDIO"];
+export const ESTADOS_TODOS: Estado[] = ["NUEVO", "CONTACTADO", "COTIZACION", "SEGUIMIENTO", "NO_RESPONDIO", "VENTA", "PERDIDO"];
 
 export const ESTADO_LABELS: Record<Estado, string> = {
   NUEVO: "Nuevo",
   CONTACTADO: "Contactado",
   COTIZACION: "Cotización",
-  SEGUIMIENTO: "Seguimiento",
-  NO_RESPONDIO: "No respondió",
+  SEGUIMIENTO: "Seguimiento (histórico)",
+  NO_RESPONDIO: "No respondió (histórico)",
   VENTA: "Venta",
   PERDIDO: "Perdido",
 };
@@ -78,14 +74,7 @@ export const ESTADO_BADGE_CLASSES: Record<Estado, string> = {
   PERDIDO: "bg-red-100 text-red-800",
 };
 
-export const GERENTE_ALLOWED_ESTADOS: Estado[] = [
-  "CONTACTADO",
-  "COTIZACION",
-  "SEGUIMIENTO",
-  "NO_RESPONDIO",
-  "VENTA",
-  "PERDIDO",
-];
+export const GERENTE_ALLOWED_ESTADOS: Estado[] = ["CONTACTADO", "COTIZACION", "VENTA", "PERDIDO"];
 
 export const RESPONSABLE_CM = "Community Manager";
 export const RESPONSABLE_COORDINADOR = "Coordinador";

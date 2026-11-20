@@ -62,9 +62,13 @@ async function main() {
   check("sin canal → 400", sinCanal.status === 400);
   const refer = await coord.json("/api/leads", "POST", { nombre: "Ref", telefono: tel(113), fuente: "REFERIDO", sucursal: "BLVD_ZACATECAS" });
   check("el canal histórico Referido ya no se acepta en altas → 400", refer.status === 400);
-  const conAs = await coord.json("/api/leads", "POST", { nombre: `Con asesor ${tag}`, telefono: tel(114), fuente: "FACEBOOK", sucursal: "BLVD_ZACATECAS", asesor: "Raul Esparza Gonzalez" });
+  const intento = await coord.json("/api/leads", "POST", { nombre: `Con asesor ${tag}`, telefono: tel(114), fuente: "FACEBOOK", sucursal: "BLVD_ZACATECAS", asesor: "Raul Esparza Gonzalez" });
+  check("Coordinación no puede elegir asesor al crear → 400", intento.status === 400);
+  // Un lead que SÍ tiene asesor: lo crea Coordinación sin asesor y lo asigna el gerente.
+  const conAs = await coord.json("/api/leads", "POST", { nombre: `Con asesor ${tag}`, telefono: tel(114), fuente: "FACEBOOK", sucursal: "BLVD_ZACATECAS" });
   if (conAs.body?.lead) created.push(conAs.body.lead.id);
-  check("alta con asesor elegido → 201 y queda asignado", conAs.status === 201 && conAs.body.lead.asesor === "Raul Esparza Gonzalez");
+  const asg0 = await blvd.json(`/api/leads/${conAs.body.lead.id}`, "PATCH", { asesor: "Raul Esparza Gonzalez" });
+  check("el gerente le asigna el asesor → 200", conAs.status === 201 && asg0.status === 200 && asg0.body.lead.asesor === "Raul Esparza Gonzalez");
   const asMal = await coord.json("/api/leads", "POST", { nombre: "Asesor malo", telefono: tel(115), fuente: "FACEBOOK", sucursal: "BLVD_ZACATECAS", asesor: "Lucio" });
   check("asesor de otra sucursal → 400", asMal.status === 400);
   check("el gerente NO puede crear leads", (await blvd.json("/api/leads", "POST", { nombre: "X", telefono: tel(116), fuente: "FACEBOOK", sucursal: "BLVD_ZACATECAS" })).status === 403);

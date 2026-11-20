@@ -16,6 +16,7 @@ const late = (l: LeadDTO) => isOverdue({ estado: l.estado, proximoSeguimiento: l
 /** Vista de lista: una fila por lead, con el nombre y el teléfono debajo. */
 export function LeadsTable({ leads, role, onDelete, onAssign }: { leads: LeadDTO[]; role: Role; onDelete: (id: string) => void; onAssign: (lead: LeadDTO) => void }) {
   const coord = role === "coord";
+  const gerente = role === "gerente"; // solo el gerente asigna asesor
   return (
     <>
       <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white md:block">
@@ -55,7 +56,7 @@ export function LeadsTable({ leads, role, onDelete, onAssign }: { leads: LeadDTO
                 <td className="whitespace-nowrap px-4 py-3 text-slate-600" title={l.asesor ?? ""}>
                   {l.asesor ? (
                     l.asesor.split(" ").slice(0, 2).join(" ")
-                  ) : cerrado(l) ? (
+                  ) : cerrado(l) || !gerente ? (
                     "—"
                   ) : (
                     <button onClick={() => onAssign(l)} className="rounded-md bg-brand px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand-dark">
@@ -106,7 +107,7 @@ export function LeadsTable({ leads, role, onDelete, onAssign }: { leads: LeadDTO
                 </span>
               </div>
             </Link>
-            {!l.asesor && !cerrado(l) && (
+            {!l.asesor && !cerrado(l) && gerente && (
               <button onClick={() => onAssign(l)} className="min-h-11 w-full border-t border-slate-100 bg-red-50 text-sm font-semibold text-brand hover:bg-red-100">
                 Asignar asesor
               </button>

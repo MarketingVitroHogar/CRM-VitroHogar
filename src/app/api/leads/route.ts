@@ -7,13 +7,13 @@ import { LeadCreateSchema } from "@/lib/validation/leadSchemas";
 import {
   autoProximoSeguimientoIfMissing,
   defaultResponsableFor,
-  isValidAsesorFor,
   isValidResponsableFor,
   resolveFechaCierre,
 } from "@/lib/leadPolicy";
 import { dayRangeUTC, mexicoTodayAsUTCDate, monthRangeUTC } from "@/lib/dateOnly";
 import { searchLeadIds } from "@/lib/leadSearch";
 import { isDateStr } from "@/lib/periodos";
+import { KANBAN_COLUMNS } from "@/lib/kanban";
 import { Sucursal } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
@@ -44,7 +44,11 @@ export async function GET(req: NextRequest) {
     where.sucursal = sucursalParam;
   }
 
-  if (estado) where.estado = estado;
+  // Filtrar por una columna (Contactado / Cotización) incluye también sus estados históricos (No respondió / Seguimiento).
+  if (estado) {
+    const col = KANBAN_COLUMNS.find((c) => c.target === estado);
+    where.estado = col ? { in: col.estados } : estado;
+  }
 
   // "Por asignar": leads abiertos que todavía no tienen asesor.
   if (searchParams.get("sinAsesor") === "1") {
@@ -107,13 +111,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const asesor = data.asesor?.trim() || null;
-    if (!isValidAsesorFor(sucursal, asesor)) {
-      return NextResponse.json(
-        { error: "asesor inválido para la sucursal seleccionada" },
-        { status: 400 }
-      );
+    // Coordinación elige la sucursal; el asesor lo asigna después el gerente.
+    if (data.asesor?.trim()) {
+      return NextResponse.json({ error: "Coordinación no asigna asesor: lo asigna el gerente de la sucursal." }, { status: 400 });
     }
+    const asesor = null;
 
     const estado = (data.estado ?? "NUEVO") as "NUEVO" | "CONTACTADO" | "COTIZACION" | "SEGUIMIENTO" | "NO_RESPONDIO" | "VENTA" | "PERDIDO";
     const fechaCierre = resolveFechaCierre(estado, data.fechaCierre ?? null);

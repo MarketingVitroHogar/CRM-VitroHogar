@@ -118,7 +118,7 @@ export function LeadCard({
       </dl>
 
       <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-3">
-        {!lead.asesor && lead.estado !== "VENTA" && lead.estado !== "PERDIDO" && (
+        {!lead.asesor && lead.estado !== "VENTA" && lead.estado !== "PERDIDO" && role === "gerente" && (
           <button onClick={() => onAssign(lead)} className="rounded-md bg-brand px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-dark">
             Asignar asesor
           </button>

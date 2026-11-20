@@ -52,6 +52,18 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     assertCanAccessLead(session.user, existing);
 
     const body = await req.json();
+    if (body && typeof body === "object") {
+      // Un estado sin cambio no se valida: así un lead que sigue en un estado histórico (Seguimiento / No respondió) se puede editar.
+      if (body.estado === existing.estado) delete body.estado;
+      // Coordinación elige la sucursal; el asesor lo asigna el gerente de esa sucursal.
+      if (session.user.role === "coord" && "asesor" in body) {
+        const pedido = (typeof body.asesor === "string" ? body.asesor.trim() : "") || null;
+        if (pedido !== (existing.asesor ?? null)) {
+          throw new ForbiddenError("Coordinación no asigna asesor: lo asigna el gerente de la sucursal.");
+        }
+        delete body.asesor;
+      }
+    }
     const schema = session.user.role === "coord" ? LeadCoordUpdateSchema : LeadGerenteUpdateSchema;
     const parsed = schema.safeParse(body);
     if (!parsed.success) {
