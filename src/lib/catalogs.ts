@@ -115,7 +115,7 @@ export const ASESORES_POR_SUCURSAL: Record<Sucursal, string[]> = {
   GONZALEZ_GALLO: ["Sara Edelia Oregel Jara", "Yolanda Rios Reyes", "Lucía Adriana Salgado Rodríguez"],
   JUAN_PABLO: ["Lucio"],
   GUADALUPE: ["Junior Gamaliel Ramirez Rodriguez", "Mayra Elizabeth Lugo Najar", "Norma Del Carmen Gonzalez Garcia"],
-  COLON: [], // pendiente: lista de asesores de Colón
+  COLON: ["Alejandra"], // por ahora solo la gerente atiende los leads de Colón
   TLI: ["Cristian", "Karen", "Paola"],
 };
 

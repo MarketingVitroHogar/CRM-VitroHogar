@@ -64,7 +64,7 @@ const sinAsigC = (await coord.json("/api/leads?sinAsesor=1" + _mes)).body.leads.
   check("el total de «sin asignar» coincide con Leads", num(C.text, /Leads sin asignar Aún no tienen asesor (\d+)/) === sinAsigC, `${num(C.text, /Leads sin asignar Aún no tienen asesor (\d+)/)} vs ${sinAsigC}`);
   const avC = (await coord.json("/api/avisos")).body;
   check("el total de «sin atender» coincide con la campana", num(C.text, /Leads sin atender (?:\d+ con más de 24 h|Leads nuevos sin primer contacto) (\d+)/) === avC.total, `${avC.total}`);
-  check("avisa de sucursales sin asesores registrados (Colón)", C.text.includes("Sin asesores registrados") && /Sin asesores registrados: [^.]*Colón/.test(C.text));
+  check("ya todas las sucursales tienen asesor registrado: no hay aviso de «sin asesores»", !C.text.includes("Sin asesores registrados"));
 
   console.log("\n== Gerente (Blvd. Zacatecas) ==");
   const G = await blvd.text("/inicio");
@@ -83,7 +83,7 @@ const sinAsigC = (await coord.json("/api/leads?sinAsesor=1" + _mes)).body.leads.
   console.log("\n== Gerente de Colón (sin asesores registrados) ==");
   const K = await colon.text("/inicio");
   check("carga (200)", K.status === 200);
-  check("explica que la sucursal no tiene asesores registrados", K.text.includes("aún no tiene asesores registrados") || /Leads sin asignar[^]*✅ Todo al día/.test(K.text));
+  check("ya NO dice que la sucursal no tiene asesores", !K.text.includes("aún no tiene asesores registrados"));
   check("no muestra otras sucursales", !["Haciendas", "Universidad", "Guadalupe", "Blvd. Zacatecas"].some((s) => K.text.includes(s)));
 
   console.log("\n== Leads: filtro desde Inicio ==");

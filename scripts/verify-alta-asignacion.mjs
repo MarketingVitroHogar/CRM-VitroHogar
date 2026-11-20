@@ -108,7 +108,12 @@ async function main() {
   check("asignar + marcar Contactado en una sola llamada → 200", as3.status === 200 && as3.body.lead.estado === "CONTACTADO" && as3.body.lead.asesor === "Karen Arely Ortega Hernandez");
   check("el gerente de otra sucursal NO puede asignar → 403", (await colon.json(`/api/leads/${L.id}`, "PATCH", { asesor: "Raul Esparza Gonzalez" })).status === 403);
   const colonLead = (await coord.json("/api/leads?sinAsesor=1&sucursal=COLON")).body.leads[0];
-  if (colonLead) check("Colón (sin asesores registrados) no admite asignar un nombre inventado → 400", (await colon.json(`/api/leads/${colonLead.id}`, "PATCH", { asesor: "Inventado" })).status === 400);
+  if (colonLead) {
+    check("Colón: un nombre inventado → 400", (await colon.json(`/api/leads/${colonLead.id}`, "PATCH", { asesor: "Inventado" })).status === 400);
+    const ale = await colon.json(`/api/leads/${colonLead.id}`, "PATCH", { asesor: "Alejandra" });
+    check("Colón: la gerente puede asignarse el lead a Alejandra → 200", ale.status === 200 && ale.body.lead.asesor === "Alejandra");
+    await coord.json(`/api/leads/${colonLead.id}`, "PATCH", { notas: "x" });
+  }
   check("el gerente no puede tocar otros campos (nombre) → 400", (await blvd.json(`/api/leads/${L.id}`, "PATCH", { nombre: "Hackeado" })).status === 400);
   check("quitar asesor (null) sigue permitido", (await blvd.json(`/api/leads/${L.id}`, "PATCH", { asesor: null })).body.lead.asesor === null);
 
