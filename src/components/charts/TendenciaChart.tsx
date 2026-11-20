@@ -28,8 +28,8 @@ export function TendenciaChart({ puntos, altura = 180 }: { puntos: Punto[]; altu
           const y = padT + plotH - (t / max) * plotH;
           return (
             <g key={t}>
-              <line x1={padL} x2={W - 4} y1={y} y2={y} stroke="#e2e8f0" strokeWidth="1" />
-              <text x={padL - 4} y={y + 3} textAnchor="end" fontSize="9" fill="#94a3b8">
+              <line x1={padL} x2={W - 4} y1={y} y2={y} className="stroke-slate-200" strokeWidth="1" />
+              <text x={padL - 4} y={y + 3} textAnchor="end" fontSize="9" className="fill-slate-400">
                 {t}
               </text>
             </g>
@@ -42,10 +42,10 @@ export function TendenciaChart({ puntos, altura = 180 }: { puntos: Punto[]; altu
           return (
             <g key={p.key}>
               <title>{`${p.label}: ${p.leads} leads, ${p.ventas} ventas`}</title>
-              <rect x={cx - barW - 0.5} y={padT + plotH - hL} width={barW} height={hL} rx="1.5" fill="#475569" />
+              <rect x={cx - barW - 0.5} y={padT + plotH - hL} width={barW} height={hL} rx="1.5" className="fill-slate-600" />
               <rect x={cx + 0.5} y={padT + plotH - hV} width={barW} height={hV} rx="1.5" fill="#22c55e" />
               {i % step === 0 && (
-                <text x={cx} y={H - 10} textAnchor="middle" fontSize="9" fill="#64748b">
+                <text x={cx} y={H - 10} textAnchor="middle" fontSize="9" className="fill-slate-500">
                   {p.label}
                 </text>
               )}

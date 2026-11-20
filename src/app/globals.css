@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
 /*
- * This app uses a single, deliberate light theme (white/slate backgrounds,
- * dark slate text) throughout — it does not adapt to the visitor's OS/browser
- * dark-mode preference. Do not reintroduce a `prefers-color-scheme: dark`
- * override here without also re-theming every component; a partial override
- * previously caused white text on white backgrounds for anyone in dark mode.
+ * Tema: claro (por defecto) y noche. El modo noche se activa con la clase "dark" en <html>
+ * (la pone el script de app/layout.tsx según la preferencia guardada o la del dispositivo).
+ * En vez de repetir "dark:" en cada componente, se redefinen las variables de color de Tailwind
+ * que usa la app (slate y los colores de estado): todo lo demás cambia solo.
+ * "text-white" se queda blanco (texto sobre el rojo de la marca); "bg-white" (tarjetas) se redefine abajo.
  */
 /* Colores institucionales — tomados directamente del logo de Vitro Hogar. */
 :root {
@@ -29,4 +29,109 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ================= MODO NOCHE ================= */
+html.dark {
+  color-scheme: dark; /* campos, calendarios y barras de desplazamiento del navegador en oscuro */
+  --background: #0b1220;
+  --foreground: #e6ebf4;
+  --color-slate-50: #0b1220;
+  --color-slate-100: #1a2438;
+  --color-slate-200: #27344d;
+  --color-slate-300: #33415c;
+  --color-slate-400: #71819b;
+  --color-slate-500: #93a1b8;
+  --color-slate-600: #aab6ca;
+  --color-slate-700: #c3cddd;
+  --color-slate-800: #d8e0ec;
+  --color-slate-900: #e6ebf4;
+  --color-slate-950: #f1f5fb;
+  --color-red-50: oklch(25.8% 0.092 26.042);
+  --color-red-100: oklch(39.6% 0.141 25.723);
+  --color-red-200: oklch(44.4% 0.177 26.899);
+  --color-red-300: oklch(50.5% 0.213 27.518);
+  --color-red-400: oklch(57.7% 0.245 27.325);
+  --color-red-500: oklch(63.7% 0.237 25.331);
+  --color-red-600: oklch(70.4% 0.191 22.216);
+  --color-red-700: oklch(80.8% 0.114 19.571);
+  --color-red-800: oklch(88.5% 0.062 18.334);
+  --color-red-900: oklch(93.6% 0.032 17.717);
+  --color-red-950: oklch(97.1% 0.013 17.38);
+  --color-amber-50: oklch(27.9% 0.077 45.635);
+  --color-amber-100: oklch(41.4% 0.112 45.904);
+  --color-amber-200: oklch(47.3% 0.137 46.201);
+  --color-amber-300: oklch(55.5% 0.163 48.998);
+  --color-amber-400: oklch(66.6% 0.179 58.318);
+  --color-amber-500: oklch(76.9% 0.188 70.08);
+  --color-amber-600: oklch(82.8% 0.189 84.429);
+  --color-amber-700: oklch(87.9% 0.169 91.605);
+  --color-amber-800: oklch(92.4% 0.12 95.746);
+  --color-amber-900: oklch(96.2% 0.059 95.617);
+  --color-amber-950: oklch(98.7% 0.022 95.277);
+  --color-green-50: oklch(26.6% 0.065 152.934);
+  --color-green-100: oklch(39.3% 0.095 152.535);
+  --color-green-200: oklch(44.8% 0.119 151.328);
+  --color-green-300: oklch(52.7% 0.154 150.069);
+  --color-green-400: oklch(62.7% 0.194 149.214);
+  --color-green-500: oklch(72.3% 0.219 149.579);
+  --color-green-600: oklch(79.2% 0.209 151.711);
+  --color-green-700: oklch(87.1% 0.15 154.449);
+  --color-green-800: oklch(92.5% 0.084 155.995);
+  --color-green-900: oklch(96.2% 0.044 156.743);
+  --color-green-950: oklch(98.2% 0.018 155.826);
+  --color-orange-50: oklch(26.6% 0.079 36.259);
+  --color-orange-100: oklch(40.8% 0.123 38.172);
+  --color-orange-200: oklch(47% 0.157 37.304);
+  --color-orange-300: oklch(55.3% 0.195 38.402);
+  --color-orange-400: oklch(64.6% 0.222 41.116);
+  --color-orange-500: oklch(70.5% 0.213 47.604);
+  --color-orange-600: oklch(75% 0.183 55.934);
+  --color-orange-700: oklch(83.7% 0.128 66.29);
+  --color-orange-800: oklch(90.1% 0.076 70.697);
+  --color-orange-900: oklch(95.4% 0.038 75.164);
+  --color-orange-950: oklch(98% 0.016 73.684);
+  --color-purple-50: oklch(29.1% 0.149 302.717);
+  --color-purple-100: oklch(38.1% 0.176 304.987);
+  --color-purple-200: oklch(43.8% 0.218 303.724);
+  --color-purple-300: oklch(49.6% 0.265 301.924);
+  --color-purple-400: oklch(55.8% 0.288 302.321);
+  --color-purple-500: oklch(62.7% 0.265 303.9);
+  --color-purple-600: oklch(71.4% 0.203 305.504);
+  --color-purple-700: oklch(82.7% 0.119 306.383);
+  --color-purple-800: oklch(90.2% 0.063 306.703);
+  --color-purple-900: oklch(94.6% 0.033 307.174);
+  --color-purple-950: oklch(97.7% 0.014 308.299);
+  --color-blue-50: oklch(28.2% 0.091 267.935);
+  --color-blue-100: oklch(37.9% 0.146 265.522);
+  --color-blue-200: oklch(42.4% 0.199 265.638);
+  --color-blue-300: oklch(48.8% 0.243 264.376);
+  --color-blue-400: oklch(54.6% 0.245 262.881);
+  --color-blue-500: oklch(62.3% 0.214 259.815);
+  --color-blue-600: oklch(70.7% 0.165 254.624);
+  --color-blue-700: oklch(80.9% 0.105 251.813);
+  --color-blue-800: oklch(88.2% 0.059 254.128);
+  --color-blue-900: oklch(93.2% 0.032 255.585);
+  --color-blue-950: oklch(97% 0.014 254.604);
+}
+
+/* Tarjetas, paneles y campos con fondo blanco */
+html.dark .bg-white {
+  background-color: #131c2e;
+}
+html.dark .bg-white\/95 {
+  background-color: color-mix(in srgb, #131c2e 95%, transparent);
+}
+/* El rojo de la marca, más claro cuando es texto sobre fondo oscuro */
+html.dark .text-brand {
+  color: #ff6b7d;
+}
+html.dark .hover\:bg-red-50:hover {
+  background-color: color-mix(in srgb, var(--color-red-50) 100%, transparent);
+}
+/* El logo tiene letras oscuras: en modo noche va sobre una placa clara */
+html.dark .logo-placa {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 3px 8px;
 }

@@ -10,6 +10,7 @@ import type { Role } from "@prisma/client";
 import { openChangePassword } from "@/lib/accountEvents";
 import { openNovedades } from "@/lib/novedades";
 import { AvisosBell } from "@/components/avisos/AvisosBell";
+import { ThemeToggle, useTema } from "@/components/ui/ThemeToggle";
 
 const LINKS = [
   { href: "/inicio", label: "Inicio", roles: ["coord", "gerente"] },
@@ -20,7 +21,7 @@ const LINKS = [
 ];
 
 /** Menú del usuario: "Cambiar contraseña" y "Salir". Punto rojo mientras no haya cambiado su contraseña. */
-function UserMenu({ username, subtitle, passwordChanged }: { username: string; subtitle: string; passwordChanged: boolean }) {
+function UserMenu({ username, subtitle, passwordChanged, auto, onAuto }: { username: string; subtitle: string; passwordChanged: boolean; auto: boolean; onAuto: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
 
@@ -74,6 +75,17 @@ function UserMenu({ username, subtitle, passwordChanged }: { username: string; s
             role="menuitem"
             onClick={() => {
               setOpen(false);
+              onAuto();
+            }}
+            className="flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
+          >
+            Modo según el dispositivo
+            {auto && <span className="rounded bg-slate-100 px-1.5 text-[11px] font-semibold text-slate-600">activo</span>}
+          </button>
+          <button
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
               openNovedades();
             }}
             className="flex w-full rounded-md px-2.5 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
@@ -105,6 +117,7 @@ export function NavBar({
   passwordChanged: boolean;
 }) {
   const pathname = usePathname();
+  const tema = useTema();
 
   return (
     <header className="border-b-2 border-brand bg-white">
@@ -116,7 +129,7 @@ export function NavBar({
             width={900}
             height={176}
             priority
-            className="h-8 w-auto sm:h-9"
+            className="logo-placa h-8 w-auto sm:h-9"
           />
           <div className="border-l border-slate-200 pl-3">
             <p className="text-xs font-semibold text-slate-900">CRM</p>
@@ -141,7 +154,8 @@ export function NavBar({
           ))}
           <span className="mx-1 hidden text-slate-300 sm:inline">|</span>
           <AvisosBell role={role} username={username} />
-          <UserMenu username={username} subtitle={subtitle} passwordChanged={passwordChanged} />
+          <ThemeToggle noche={tema.noche} onToggle={() => tema.elegir(tema.noche ? "claro" : "noche")} />
+          <UserMenu username={username} subtitle={subtitle} passwordChanged={passwordChanged} auto={tema.pref === "auto"} onAuto={() => tema.elegir("auto")} />
         </nav>
       </div>
     </header>

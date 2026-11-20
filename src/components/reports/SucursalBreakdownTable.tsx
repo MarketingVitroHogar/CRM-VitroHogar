@@ -16,7 +16,7 @@ export function SucursalBreakdownTable({ rows }: { rows: SucursalRow[] }) {
   return (
     <div className="max-h-80 overflow-auto rounded-lg border border-slate-200 bg-white">
       <table className="min-w-full divide-y divide-slate-200 text-sm">
-        <thead className="sticky top-0 z-10 bg-slate-50 shadow-[0_1px_0_0_#e2e8f0]">
+        <thead className="sticky top-0 z-10 bg-slate-50 shadow-[0_1px_0_0_var(--color-slate-200)]">
           <tr>
             <th className="px-3 py-1.5 text-left font-medium text-slate-500">Sucursal</th>
             <th className="px-3 py-1.5 text-right font-medium text-slate-500">Leads</th>

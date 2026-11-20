@@ -4,11 +4,41 @@ import type { Role } from "@prisma/client";
  * Aviso de "Novedades" del CRM. Al cambiar NOVEDADES_VERSION, todas las personas vuelven a ver el aviso
  * una vez (se guarda en su navegador, por usuario). Aquí se listan los cambios; no hay nada más que tocar.
  */
-export const NOVEDADES_VERSION = "2026-11-17";
+export const NOVEDADES_VERSION = "2026-11-20";
 
 export type Novedad = { icono: string; titulo: string; texto: string; roles?: Role[] };
 
 export const NOVEDADES: Novedad[] = [
+  {
+    icono: "🌙",
+    titulo: "Modo noche",
+    texto:
+      "Ahora puedes cambiar a modo noche con el botón de la luna, arriba junto a tu nombre. Es más cómodo para trabajar de noche o con poca luz. El CRM recuerda tu elección; si prefieres, en tu menú puedes elegir “Modo según el dispositivo”.",
+  },
+  {
+    icono: "✅",
+    titulo: "Marcar todo como leído",
+    texto:
+      "En la campana de avisos hay un botón para marcar todo como leído y apagar el número rojo. Los leads siguen pendientes en Inicio y en Leads, y la campana vuelve a avisarte solo cuando llega algo nuevo.",
+  },
+  {
+    icono: "➕",
+    titulo: "Nuevo lead en un panel lateral",
+    texto:
+      "Coordinación ahora carga los leads desde un panel que se abre encima de la lista de Leads, sin cambiar de pantalla. “Guardar y cargar otro” deja el panel abierto para registrar varios seguidos.",
+  },
+  {
+    icono: "🤝",
+    titulo: "Coordinación elige la sucursal; el gerente asigna al asesor",
+    texto:
+      "Al cargar un lead, Coordinación solo indica la sucursal a la que va. El gerente de esa sucursal es quien asigna al asesor que lo atiende. En Colón, por ahora, el lead se asigna a Alejandra.",
+  },
+  {
+    icono: "🏷️",
+    titulo: "Estados: Seguimiento y No respondió ahora son históricos",
+    texto:
+      "Los estados de trabajo son Nuevo, Contactado, Cotización, Venta y Perdido. Los leads que ya estaban en Seguimiento o No respondió se conservan, marcados como “histórico”, pero ya no se pueden elegir. Lo mismo pasa con los canales Referido y Otro.",
+  },
   {
     icono: "🏠",
     titulo: "Nueva pantalla de Inicio",
@@ -19,15 +49,13 @@ export const NOVEDADES: Novedad[] = [
     icono: "👤",
     titulo: "Asignar asesor en un paso",
     texto:
-      "Los leads sin asesor muestran el botón Asignar (en Inicio, en Leads y en la campana). En Leads, el aviso \"por asignar\" te muestra solo los que faltan.",
-    roles: ["gerente"],
+      "Los leads sin asesor muestran el botón Asignar al gerente (en Inicio, en Leads y en la campana). En Leads, el aviso \"por asignar\" le muestra solo los que faltan.",
   },
   {
     icono: "⚡",
     titulo: "Captura rápida de leads",
     texto:
       "Nuevo lead ahora pide solo nombre, teléfono, interés, canal y sucursal. Usa \"Guardar y cargar otro\" para registrar varios seguidos; avisa si el teléfono ya existe.",
-    roles: ["coord"],
   },
   {
     icono: "🔍",

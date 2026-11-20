@@ -63,7 +63,7 @@ export default function LoginPage() {
           width={900}
           height={176}
           priority
-          className="mx-auto mb-3 h-auto w-64 max-w-full"
+          className="logo-placa mx-auto mb-3 h-auto w-64 max-w-full"
         />
         <h1 className="mb-6 text-center text-sm font-medium text-slate-500">CRM de seguimiento de leads</h1>
 

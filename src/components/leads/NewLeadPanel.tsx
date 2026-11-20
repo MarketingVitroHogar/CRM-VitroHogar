@@ -41,7 +41,7 @@ export function NewLeadPanel({
   return (
     <>
       {/* Fondo atenuado: tocarlo cierra el panel (pregunta si hay datos sin guardar). */}
-      <div className="fixed inset-0 z-40 bg-slate-900/30" onClick={tryClose} aria-hidden />
+      <div className="fixed inset-0 z-40 bg-black/40" onClick={tryClose} aria-hidden />
       <aside
         role="dialog"
         aria-label="Nuevo lead"
