@@ -16,11 +16,6 @@ export const NOVEDADES: Novedad[] = [
       "En Inicio hay una tarjeta nueva con los leads que siguen sin cerrar (ni venta ni perdido) de meses anteriores, y cuántos tienen el seguimiento vencido. Así no se pierden de vista aunque Inicio y la campana solo muestren el mes en curso. Tócala para verlos en Leads.",
   },
   {
-    icono: "🌙",
-    titulo: "Nuevo logo en modo noche",
-    texto: "En modo noche el logo de Vitro Hogar ahora se ve con letras blancas, sin el recuadro blanco de antes.",
-  },
-  {
     icono: "👩‍💼",
     titulo: "Nueva asesora en López Mateos",
     texto: "Karen Paola Ponce Reyes ya aparece entre los asesores de la sucursal López Mateos, para que el gerente le pueda asignar leads.",
