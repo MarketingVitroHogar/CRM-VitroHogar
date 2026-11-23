@@ -1,10 +1,11 @@
 import clsx from "clsx";
+import { EstadoVacio } from "@/components/ui/EstadoVacio";
 
 /** Barras horizontales con etiqueta, valor y porcentaje. */
 export function BarrasH({ filas, colorClase = "bg-brand" }: { filas: { label: string; valor: number; extra?: string; colorClase?: string }[]; colorClase?: string }) {
   const max = Math.max(1, ...filas.map((f) => f.valor));
   const total = filas.reduce((s, f) => s + f.valor, 0);
-  if (total === 0) return <p className="py-6 text-center text-sm text-slate-400">Sin leads en este periodo.</p>;
+  if (total === 0) return <EstadoVacio compact icono="grafica" titulo="Sin leads en este periodo" texto="Prueba con otro periodo." />;
   return (
     <ul className="flex flex-col gap-2.5">
       {filas.map((f) => (

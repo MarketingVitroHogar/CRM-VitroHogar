@@ -1,3 +1,5 @@
+import { EstadoVacio } from "@/components/ui/EstadoVacio";
+
 type Punto = { key: string; label: string; leads: number; ventas: number };
 
 /**
@@ -6,7 +8,7 @@ type Punto = { key: string; label: string; leads: number; ventas: number };
  */
 export function TendenciaChart({ puntos, altura = 180 }: { puntos: Punto[]; altura?: number }) {
   if (puntos.length === 0 || puntos.every((p) => p.leads === 0 && p.ventas === 0)) {
-    return <p className="py-8 text-center text-sm text-slate-400">Sin movimiento en este periodo.</p>;
+    return <EstadoVacio compact icono="grafica" titulo="Sin movimiento en este periodo" texto="Aquí verás los leads y las ventas por día cuando haya." />;
   }
   const max = Math.max(1, ...puntos.map((p) => Math.max(p.leads, p.ventas)));
   const W = 640;

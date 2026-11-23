@@ -10,6 +10,7 @@ import { CanalBreakdownTable, type CanalRow } from "./CanalBreakdownTable";
 import { SucursalBreakdownTable, type SucursalRow } from "./SucursalBreakdownTable";
 import { TendenciaChart } from "@/components/charts/TendenciaChart";
 import { BarrasH } from "@/components/charts/BarrasH";
+import { EstadoVacio } from "@/components/ui/EstadoVacio";
 
 type Metrics = {
   totalLeads: number;
@@ -143,7 +144,7 @@ export function ReportsView({ role }: { role: Role }) {
             <section className="min-w-0">
               <h2 className="mb-2 text-sm font-semibold text-slate-700">Desempeño por asesor</h2>
               {data.porAsesor.length === 0 ? (
-                <p className="text-sm text-slate-400">Sin datos para este periodo.</p>
+                <EstadoVacio compact icono="grafica" titulo="Sin datos en este periodo" texto="Prueba con otro periodo." />
               ) : (
                 <div className="max-h-80 overflow-auto rounded-lg border border-slate-200 bg-white">
                   <table className="min-w-full divide-y divide-slate-200 text-sm">

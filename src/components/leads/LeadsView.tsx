@@ -18,6 +18,7 @@ import { useToast } from "@/components/ui/Toast";
 import { VISTA_STORAGE_KEY, type LeadsVista } from "@/lib/kanban";
 import { PERIODO_POR_DEFECTO, PERIODOS_EXTRA, PERIODOS_RAPIDOS, periodoDeUrl, rangoDe, textoRango } from "@/lib/periodos";
 import { FiltrosActivos, type FiltroChip } from "./FiltrosActivos";
+import { EstadoVacio } from "@/components/ui/EstadoVacio";
 import type { LeadDTO } from "@/lib/types";
 
 const LEADS_PER_PAGE = 15; // lista y tarjetas
@@ -351,14 +352,41 @@ export function LeadsView({ role }: { role: Role }) {
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {!loading && leads.length === 0 && !error && (
-        <p className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-400">
-          No hay leads que coincidan con estos filtros.
-          {chips.length > 0 && (
-            <button onClick={limpiarFiltros} className="mx-auto mt-3 block min-h-9 rounded-md bg-brand px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-brand-dark">
-              Limpiar filtros
-            </button>
+        <div className="rounded-lg border border-dashed border-slate-300 bg-white">
+          {chips.length > 0 ? (
+            <EstadoVacio icono="buscar" titulo="No hay leads con estos filtros" texto="Prueba con otro periodo o quita algún filtro.">
+              <button onClick={limpiarFiltros} className="min-h-9 rounded-md bg-brand px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-brand-dark">
+                Limpiar filtros
+              </button>
+            </EstadoVacio>
+          ) : soloPorAsignar ? (
+            <EstadoVacio titulo="No hay leads por asignar" texto="No hay leads de este mes sin asesor.">
+              <button onClick={() => setSoloPorAsignar(false)} className="min-h-9 rounded-md bg-brand px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-brand-dark">
+                Ver todos los leads
+              </button>
+            </EstadoVacio>
+          ) : soloAnteriores ? (
+            <EstadoVacio titulo="No hay leads abiertos de meses anteriores" texto="Todo lo anterior ya está cerrado (venta o perdido).">
+              <button
+                onClick={() => {
+                  setSoloAnteriores(false);
+                  window.history.replaceState(null, "", "/leads");
+                }}
+                className="min-h-9 rounded-md bg-brand px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-brand-dark"
+              >
+                Ver el mes actual
+              </button>
+            </EstadoVacio>
+          ) : (
+            <EstadoVacio icono="leads" titulo="Aún no hay leads en este periodo" texto={role === "coord" ? "Cuando cargues uno aparecerá aquí." : "Aparecerán cuando Coordinación cargue leads para tu sucursal."}>
+              {role === "coord" && (
+                <button onClick={() => setNuevoAbierto(true)} className="min-h-9 rounded-md bg-brand px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-brand-dark">
+                  + Nuevo lead
+                </button>
+              )}
+            </EstadoVacio>
           )}
-        </p>
+        </div>
       )}
 
       {!loading && leads.length > 0 && vista === "kanban" && (

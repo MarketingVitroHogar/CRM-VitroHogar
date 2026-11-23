@@ -1,5 +1,6 @@
 import { FUENTE_LABELS } from "@/lib/catalogs";
 import type { Fuente } from "@prisma/client";
+import { EstadoVacio } from "@/components/ui/EstadoVacio";
 
 export type CanalRow = {
   fuente: Fuente;
@@ -11,7 +12,7 @@ export type CanalRow = {
 
 export function CanalBreakdownTable({ rows }: { rows: CanalRow[] }) {
   if (rows.length === 0) {
-    return <p className="text-sm text-slate-400">Sin datos para este periodo.</p>;
+    return <EstadoVacio compact icono="grafica" titulo="Sin datos en este periodo" texto="Prueba con otro periodo." />;
   }
 
   return (

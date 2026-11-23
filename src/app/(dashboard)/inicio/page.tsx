@@ -11,6 +11,7 @@ import { TendenciaChart } from "@/components/charts/TendenciaChart";
 import { BarrasH } from "@/components/charts/BarrasH";
 import { PorAsignarLista } from "@/components/inicio/PorAsignarLista";
 import { AutoRefresh } from "@/components/ui/AutoRefresh";
+import { EstadoVacio } from "@/components/ui/EstadoVacio";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,7 @@ function Tarea({
   children,
   href,
   enlace,
+  vacio,
 }: {
   titulo: string;
   total: number;
@@ -50,6 +52,8 @@ function Tarea({
   children?: React.ReactNode;
   href?: string;
   enlace?: string;
+  /** Mensaje cuando no hay pendientes. */
+  vacio?: { titulo: string; texto: string };
 }) {
   return (
     <section
@@ -65,7 +69,7 @@ function Tarea({
         </div>
         <span className={clsx("text-3xl font-bold leading-none", total === 0 ? "text-green-600" : tono === "urgente" ? "text-brand" : "text-slate-900")}>{total}</span>
       </div>
-      {total === 0 ? <p className="py-3 text-sm text-slate-500">✅ Todo al día.</p> : <div className="min-w-0 flex-1">{children}</div>}
+      {total === 0 ? vacio ? <EstadoVacio compact titulo={vacio.titulo} texto={vacio.texto} /> : <p className="py-3 text-sm text-slate-500">✅ Todo al día.</p> : <div className="min-w-0 flex-1">{children}</div>}
       {href && total > 0 && (
         <Link href={href} className="mt-3 block rounded-md bg-slate-100 px-3 py-2 text-center text-xs font-semibold text-slate-700 hover:bg-slate-200">
           {enlace ?? "Ver en Leads"}
@@ -146,6 +150,7 @@ export default async function InicioPage() {
             tono={sinAsignar.total > 0 ? "pendiente" : "listo"}
             href={coord ? undefined : "/leads?sinAsesor=1"}
             enlace="Ver y asignar en Leads"
+            vacio={{ titulo: "Nada por asignar", texto: "No hay leads de este mes sin asesor." }}
           >
             {coord ? (
               <ul className="divide-y divide-slate-100">{sinAsignar.porSucursal.map((s) => filaSucursal(s, `/leads?sucursal=${s.sucursal}`, "sin asesor"))}</ul>
@@ -162,6 +167,7 @@ export default async function InicioPage() {
             tono={sinAtender.atrasados > 0 ? "urgente" : sinAtender.total > 0 ? "pendiente" : "listo"}
             href="/leads"
             enlace="Ver en Leads"
+            vacio={{ titulo: "Todo atendido", texto: "Los leads nuevos aparecerán aquí y en la campana cuando lleguen." }}
           >
             {coord ? (
               <ul className="divide-y divide-slate-100">{sinAtender.porSucursal.map((s) => filaSucursal(s, `/leads?sucursal=${s.sucursal}`, "sin atender"))}</ul>
@@ -212,6 +218,7 @@ export default async function InicioPage() {
               total={seguimientos.total}
               detalle={seguimientos.vencidos > 0 ? `${seguimientos.vencidos} vencidos · leads ya contactados` : "Para hoy · leads ya contactados"}
               tono={seguimientos.items.some((s) => s.vencido) ? "urgente" : seguimientos.total > 0 ? "pendiente" : "listo"}
+              vacio={{ titulo: "Sin seguimientos para hoy", texto: "Aquí aparecen los leads contactados cuyo seguimiento es hoy o ya venció." }}
             >
               <ul className="divide-y divide-slate-100">
                 {seguimientos.items.map((l) => (
@@ -245,6 +252,7 @@ export default async function InicioPage() {
         tono={anteriores.vencidos > 0 ? "urgente" : anteriores.total > 0 ? "pendiente" : "listo"}
         href="/leads?abiertos=anteriores"
         enlace="Ver todos en Leads"
+        vacio={{ titulo: "Nada pendiente de meses anteriores", texto: "Todo lo que ingresó antes de este mes ya está cerrado (venta o perdido)." }}
       >
         <div className="mb-2 flex flex-wrap gap-2">
           {anteriores.porEstado.map((e) => (
@@ -315,7 +323,7 @@ export default async function InicioPage() {
           {coord ? (
             <Card title="Sucursales este mes">
               {rep.porSucursal.length === 0 ? (
-                <p className="py-6 text-center text-sm text-slate-400">Aún no hay leads este mes.</p>
+                <EstadoVacio compact icono="leads" titulo="Aún no hay leads este mes" texto={coord ? "Cárgalos con el botón + Nuevo lead." : "Aparecerán cuando Coordinación cargue leads para tu sucursal."} />
               ) : (
                 <ul className="max-h-60 divide-y divide-slate-100 overflow-y-auto">
                   {[...rep.porSucursal]
@@ -334,7 +342,7 @@ export default async function InicioPage() {
           ) : (
             <Card title="Desempeño por asesor">
               {rep.porAsesor.length === 0 ? (
-                <p className="py-6 text-center text-sm text-slate-400">Aún no hay leads este mes.</p>
+                <EstadoVacio compact icono="leads" titulo="Aún no hay leads este mes" texto={coord ? "Cárgalos con el botón + Nuevo lead." : "Aparecerán cuando Coordinación cargue leads para tu sucursal."} />
               ) : (
                 <ul className="max-h-60 divide-y divide-slate-100 overflow-y-auto">
                   {rep.porAsesor.map((a) => (
@@ -358,7 +366,7 @@ export default async function InicioPage() {
 
           <Card title="Ventas cerradas este mes">
             {data.ventasRecientes.length === 0 ? (
-              <p className="py-6 text-center text-sm text-slate-400">Aún no hay ventas cerradas este mes.</p>
+              <EstadoVacio compact icono="venta" titulo="Aún no hay ventas cerradas este mes" texto="Cuando un lead pase a Venta aparecerá aquí." />
             ) : (
               <ul className="divide-y divide-slate-100">
                 {data.ventasRecientes.map((v) => (

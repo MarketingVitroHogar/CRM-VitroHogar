@@ -1,5 +1,6 @@
 import { SUCURSAL_LABELS } from "@/lib/catalogs";
 import type { Sucursal } from "@prisma/client";
+import { EstadoVacio } from "@/components/ui/EstadoVacio";
 
 export type SucursalRow = {
   sucursal: Sucursal;
@@ -10,7 +11,7 @@ export type SucursalRow = {
 
 export function SucursalBreakdownTable({ rows }: { rows: SucursalRow[] }) {
   if (rows.length === 0) {
-    return <p className="text-sm text-slate-400">Sin datos para este periodo.</p>;
+    return <EstadoVacio compact icono="grafica" titulo="Sin datos en este periodo" texto="Prueba con otro periodo." />;
   }
 
   return (
