@@ -26,6 +26,14 @@ export function LeadSearchBox({
     onSearchRef.current = onSearch;
   });
 
+  // Si la búsqueda se quita desde fuera (la etiqueta de filtros activos o "Limpiar filtros"), el cuadro se vacía también.
+  useEffect(() => {
+    if (value !== lastSent.current) {
+      lastSent.current = value;
+      setDraft(value);
+    }
+  }, [value]);
+
   // Búsqueda automática al dejar de escribir (mínimo 2 caracteres; vacío = quitar búsqueda).
   useEffect(() => {
     const q = draft.trim();
@@ -45,9 +53,9 @@ export function LeadSearchBox({
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex w-full flex-col gap-1.5 sm:w-auto">
       <div className="flex items-end gap-2">
-        <div>
+        <div className="min-w-0 flex-1 sm:flex-none">
           <label htmlFor="lead-search" className="mb-1 block text-xs font-medium text-slate-500">
             Buscar lead
           </label>
@@ -61,7 +69,7 @@ export function LeadSearchBox({
             }}
             placeholder="Nombre, teléfono, interés, asesor o folio…"
             autoComplete="off"
-            className="w-72 max-w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+            className="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand sm:w-72"
           />
         </div>
         <button type="button" onClick={submit} className="rounded-md bg-brand px-4 py-1.5 text-sm font-medium text-white hover:bg-brand-dark">

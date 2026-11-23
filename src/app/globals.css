@@ -154,3 +154,35 @@ html.dark .logo-noche {
 html.dark .logo-claro {
   display: none;
 }
+
+/* Pantallas táctiles (tablets y celulares): botones, menús y campos de al menos 44 px para tocarlos sin errar.
+   En computadora con mouse no cambia nada. */
+@media (pointer: coarse) {
+  button,
+  select,
+  summary,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="range"]) {
+    min-height: 2.75rem;
+  }
+  header nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+  }
+  /* Botones de solo ícono (campana, modo noche, editar, eliminar…) */
+  button.w-8,
+  button.w-9,
+  a.w-8,
+  a.w-9 {
+    min-width: 2.75rem;
+  }
+  a.h-8,
+  a.h-9 {
+    min-height: 2.75rem;
+  }
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+}

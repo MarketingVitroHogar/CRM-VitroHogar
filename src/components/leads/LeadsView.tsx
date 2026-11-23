@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import clsx from "clsx";
-import { SUCURSALES, SUCURSAL_LABELS } from "@/lib/catalogs";
+import { SUCURSALES, SUCURSAL_LABELS, ESTADO_LABELS } from "@/lib/catalogs";
 import type { Role } from "@prisma/client";
 import { LeadFilters, type LeadFilterState } from "./LeadFilters";
 import { LeadSearchBox } from "./LeadSearchBox";
@@ -16,7 +16,8 @@ import { EditLeadPanel } from "./EditLeadPanel";
 import { AsignarDialog, LEADS_CHANGED_EVENT, type AsignarResult } from "./AsignarDialog";
 import { useToast } from "@/components/ui/Toast";
 import { VISTA_STORAGE_KEY, type LeadsVista } from "@/lib/kanban";
-import { PERIODO_POR_DEFECTO, periodoDeUrl, rangoDe, textoRango } from "@/lib/periodos";
+import { PERIODO_POR_DEFECTO, PERIODOS_EXTRA, PERIODOS_RAPIDOS, periodoDeUrl, rangoDe, textoRango } from "@/lib/periodos";
+import { FiltrosActivos, type FiltroChip } from "./FiltrosActivos";
 import type { LeadDTO } from "@/lib/types";
 
 const LEADS_PER_PAGE = 15; // lista y tarjetas
@@ -228,6 +229,28 @@ export function LeadsView({ role }: { role: Role }) {
   const totalPages = Math.max(1, Math.ceil(leads.length / LEADS_PER_PAGE));
   const pageLeads = leads.slice((page - 1) * LEADS_PER_PAGE, page * LEADS_PER_PAGE);
 
+  // Filtros puestos, como etiquetas. "Este mes", "Todas las sucursales" y "Más reciente primero" son lo normal: no cuentan.
+  // En "Por asignar" y "Abiertos de meses anteriores" el periodo y el estado no aplican, así que no se muestran.
+  const modoEspecial = soloPorAsignar || soloAnteriores;
+  const chips: FiltroChip[] = [];
+  if (!modoEspecial && filters.periodo.key !== PERIODO_POR_DEFECTO.key) {
+    const p = filters.periodo;
+    const nombre = p.key === "personalizado" ? textoRango(rangoDe(p)) : ([...PERIODOS_RAPIDOS, ...PERIODOS_EXTRA].find((x) => x.key === p.key)?.label ?? p.key);
+    chips.push({ key: "periodo", label: `Fecha: ${nombre}`, onQuitar: () => setFilters((f) => ({ ...f, periodo: PERIODO_POR_DEFECTO })) });
+  }
+  if (role === "coord" && filters.sucursal) {
+    chips.push({ key: "sucursal", label: `Sucursal: ${SUCURSAL_LABELS[filters.sucursal as keyof typeof SUCURSAL_LABELS] ?? filters.sucursal}`, onQuitar: () => setFilters((f) => ({ ...f, sucursal: "" })) });
+  }
+  if (!modoEspecial && filters.estado && (vista !== "kanban" || filters.estado === "SIN_SEGUIMIENTO")) {
+    const nombre = filters.estado === "SIN_SEGUIMIENTO" ? "Sin seguimiento" : (ESTADO_LABELS[filters.estado as keyof typeof ESTADO_LABELS] ?? filters.estado);
+    chips.push({ key: "estado", label: `Estado: ${nombre}`, onQuitar: () => setFilters((f) => ({ ...f, estado: "" })) });
+  }
+  if (filters.q) chips.push({ key: "q", label: `Búsqueda: “${filters.q}”`, onQuitar: () => setFilters((f) => ({ ...f, q: "" })) });
+  if (!modoEspecial && filters.orden === "asc") chips.push({ key: "orden", label: "Más antiguos primero", onQuitar: () => setFilters((f) => ({ ...f, orden: "desc" })) });
+  function limpiarFiltros() {
+    setFilters({ periodo: PERIODO_POR_DEFECTO, sucursal: "", estado: "", orden: "desc", q: "", qEnPeriodo: false });
+  }
+
   async function handleDelete(id: string) {
     if (!confirm("¿Eliminar este lead? Esta acción no se puede deshacer.")) return;
     const res = await fetch(`/api/leads/${id}`, { method: "DELETE" });
@@ -313,6 +336,8 @@ export function LeadsView({ role }: { role: Role }) {
         </div>
       </div>
 
+      <FiltrosActivos chips={chips} onLimpiar={limpiarFiltros} />
+
       {filters.q && (
         <p className="-mt-2 text-xs text-slate-500">
           Buscando &quot;{filters.q}&quot; {filters.qEnPeriodo ? `solo en el periodo elegido (${textoRango(rangoDe(filters.periodo))})` : "en todos los periodos"}.
@@ -328,6 +353,11 @@ export function LeadsView({ role }: { role: Role }) {
       {!loading && leads.length === 0 && !error && (
         <p className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-400">
           No hay leads que coincidan con estos filtros.
+          {chips.length > 0 && (
+            <button onClick={limpiarFiltros} className="mx-auto mt-3 block min-h-9 rounded-md bg-brand px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-brand-dark">
+              Limpiar filtros
+            </button>
+          )}
         </p>
       )}
 

@@ -204,6 +204,24 @@ export function AvisosBell({ role, username }: { role: Role; username: string })
   const badge = sinLeer + segSinLeer + ventasNuevas;
   const rojo = (sinLeer > 0 && data.atrasados > 0) || (segSinLeer > 0 && (seg?.vencidos ?? 0) > 0) || ventasNuevas > 0;
 
+  // El número también aparece en el título de la pestaña ("(3) Vitro Hogar CRM"): se ve aunque el CRM esté en segundo plano.
+  useEffect(() => {
+    const quitar = (t: string) => t.replace(/^\(\d+\+?\)\s*/, "");
+    const aplicar = () => {
+      const limpio = quitar(document.title);
+      const nuevo = badge > 0 ? `(${badge > 99 ? "99+" : badge}) ${limpio}` : limpio;
+      if (document.title !== nuevo) document.title = nuevo;
+    };
+    aplicar();
+    // Al cambiar de pantalla Next.js vuelve a poner el título: se le vuelve a agregar el número.
+    const obs = new MutationObserver(aplicar);
+    obs.observe(document.head, { childList: true, subtree: true, characterData: true });
+    return () => {
+      obs.disconnect();
+      document.title = quitar(document.title);
+    };
+  }, [badge]);
+
   function markSalesSeen() {
     const latest = Math.max(Date.now(), ...(data.ventas ?? []).map((v) => new Date(v.cerradaAt).getTime()));
     setVistasHasta(latest);
