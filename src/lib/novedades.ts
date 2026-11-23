@@ -7,11 +7,17 @@ import type { Role } from "@prisma/client";
  * Para anunciar un cambio: agrega la entrada ARRIBA de la lista con una `v` nueva (mayor que las anteriores,
  * p. ej. "2026-11-22") y sube NOVEDADES_VERSION a ese mismo valor. No hay nada más que tocar.
  */
-export const NOVEDADES_VERSION = "2026-11-22";
+export const NOVEDADES_VERSION = "2026-11-23";
 
 export type Novedad = { icono: string; titulo: string; texto: string; v: string; roles?: Role[] };
 
 export const NOVEDADES: Novedad[] = [
+  {
+    icono: "👥",
+    titulo: "Nuevos asesores en Juan Pablo",
+    v: "2026-11-23",
+    texto: "En la sucursal Juan Pablo ya aparecen Mario Rafael Butron Muñoz y Christian Oswaldo Tavares Hernandez para que el gerente les asigne leads. Lucio ya no está en la lista.",
+  },
   {
     icono: "🔔",
     titulo: "Seguimientos en la campana y avisos en el navegador",
