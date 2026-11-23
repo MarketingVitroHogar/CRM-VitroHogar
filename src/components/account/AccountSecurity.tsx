@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
-import type { Role } from "@prisma/client";
+import type { Role, Sucursal } from "@prisma/client";
 import { OPEN_CHANGE_PASSWORD_EVENT, PW_NOTICE_DISMISSED_KEY } from "@/lib/accountEvents";
 import { NOVEDADES_EVENT, guardarUltimaVista, leerUltimaVista, novedadesFor, novedadesNuevas, type Novedad } from "@/lib/novedades";
 
@@ -17,7 +17,7 @@ const btnSoft = "rounded-md bg-slate-100 px-4 py-2 text-sm font-medium text-slat
  * Aviso al entrar (si todavía no cambió su contraseña) + cuadro "Cambiar contraseña".
  * El aviso NO es obligatorio: "Más tarde" lo cierra y vuelve a salir la próxima vez que entre.
  */
-export function AccountSecurity({ passwordChanged, role, username }: { passwordChanged: boolean; role: Role; username: string }) {
+export function AccountSecurity({ passwordChanged, role, username, sucursal }: { passwordChanged: boolean; role: Role; username: string; sucursal: Sucursal | null }) {
   const router = useRouter();
   const { toast, toastNode } = useToast();
   const [notice, setNotice] = useState(false);
@@ -42,17 +42,17 @@ export function AccountSecurity({ passwordChanged, role, username }: { passwordC
   }, [passwordChanged]);
 
   useEffect(() => {
-    const nuevas = novedadesNuevas(role, leerUltimaVista(username));
+    const nuevas = novedadesNuevas(role, sucursal, leerUltimaVista(username));
     // eslint-disable-next-line react-hooks/set-state-in-effect -- depende de almacenamiento del navegador (solo cliente)
     if (nuevas.length > 0) setNovedades({ lista: nuevas, todas: false });
     else maybeShowPasswordNotice();
-  }, [role, username, maybeShowPasswordNotice]);
+  }, [role, sucursal, username, maybeShowPasswordNotice]);
 
   useEffect(() => {
-    const h = () => setNovedades({ lista: novedadesFor(role), todas: true }); // desde el menú de usuario → "Novedades": todas
+    const h = () => setNovedades({ lista: novedadesFor(role, sucursal), todas: true }); // desde el menú de usuario → "Novedades": todas
     window.addEventListener(NOVEDADES_EVENT, h);
     return () => window.removeEventListener(NOVEDADES_EVENT, h);
-  }, [role]);
+  }, [role, sucursal]);
 
   function closeNovedades() {
     const eraAutomatico = novedades ? !novedades.todas : false;

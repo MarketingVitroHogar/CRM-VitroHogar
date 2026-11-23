@@ -17,7 +17,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="flex min-h-screen flex-col bg-slate-50">
       <NavBar role={role} username={username} subtitle={subtitle} passwordChanged={passwordChanged} />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
-      <AccountSecurity passwordChanged={passwordChanged} role={role} username={username} />
+      <AccountSecurity passwordChanged={passwordChanged} role={role} username={username} sucursal={sucursal} />
     </div>
   );
 }

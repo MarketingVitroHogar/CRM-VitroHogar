@@ -1,4 +1,4 @@
-import type { Role } from "@prisma/client";
+import type { Role, Sucursal } from "@prisma/client";
 
 /**
  * Aviso de "Novedades" del CRM. Cada novedad lleva la versión (`v`) en que se publicó. Al entrar, cada persona ve SOLO las
@@ -9,13 +9,18 @@ import type { Role } from "@prisma/client";
  */
 export const NOVEDADES_VERSION = "2026-11-23";
 
-export type Novedad = { icono: string; titulo: string; texto: string; v: string; roles?: Role[] };
+/**
+ * `roles`: solo para esos perfiles. `sucursales`: solo para los gerentes de esas sucursales (p. ej. un asesor nuevo en una
+ * sucursal solo se anuncia a su gerente, no a todos).
+ */
+export type Novedad = { icono: string; titulo: string; texto: string; v: string; roles?: Role[]; sucursales?: Sucursal[] };
 
 export const NOVEDADES: Novedad[] = [
   {
     icono: "👥",
     titulo: "Nuevos asesores en Juan Pablo",
     v: "2026-11-23",
+    sucursales: ["JUAN_PABLO"],
     texto: "En la sucursal Juan Pablo ya aparecen Mario Rafael Butron Muñoz y Christian Oswaldo Tavares Hernandez para que el gerente les asigne leads. Lucio ya no está en la lista.",
   },
   {
@@ -49,6 +54,7 @@ export const NOVEDADES: Novedad[] = [
     icono: "👩‍💼",
     titulo: "Nueva asesora en López Mateos",
     v: "2026-11-20-b",
+    sucursales: ["LOPEZ_MATEOS"],
     texto: "Karen Paola Ponce Reyes ya aparece entre los asesores de la sucursal López Mateos, para que el gerente le pueda asignar leads.",
   },
   {
@@ -166,13 +172,18 @@ const novedadesKeyAntigua = (version: string, username: string) => `crm:novedade
 /** Sin ningún registro (equipo nuevo o primera vez), solo se muestran las más recientes. */
 export const MAX_SIN_REGISTRO = 5;
 
-export function novedadesFor(role: Role): Novedad[] {
-  return NOVEDADES.filter((n) => !n.roles || n.roles.includes(role));
+export function novedadesFor(role: Role, sucursal: Sucursal | null = null): Novedad[] {
+  return NOVEDADES.filter((n) => {
+    if (n.roles && !n.roles.includes(role)) return false;
+    // Avisos de una sucursal: solo los ve el gerente de esa sucursal.
+    if (n.sucursales && !(role === "gerente" && sucursal && n.sucursales.includes(sucursal))) return false;
+    return true;
+  });
 }
 
 /** Las novedades que esta persona todavía no ha visto: las publicadas después de su última visita. */
-export function novedadesNuevas(role: Role, ultimaVista: string | null): Novedad[] {
-  const mias = novedadesFor(role);
+export function novedadesNuevas(role: Role, sucursal: Sucursal | null, ultimaVista: string | null): Novedad[] {
+  const mias = novedadesFor(role, sucursal);
   if (!ultimaVista) return mias.slice(0, MAX_SIN_REGISTRO);
   return mias.filter((n) => n.v > ultimaVista);
 }
