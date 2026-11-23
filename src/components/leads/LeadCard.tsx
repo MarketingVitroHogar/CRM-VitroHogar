@@ -8,6 +8,7 @@ import { FUENTE_LABELS, SUCURSAL_LABELS } from "@/lib/catalogs";
 import { isOverdue, round2 } from "@/lib/leadPolicy";
 import { formatDateOnly } from "@/lib/dateOnly";
 import { clicSimple } from "@/lib/abrirEnPanel";
+import { haceTiempo } from "@/lib/tiempo";
 import type { LeadDTO } from "@/lib/types";
 
 const fmt = formatDateOnly;
@@ -64,7 +65,9 @@ export function LeadCard({
         </div>
         <div>
           <dt className="text-xs text-slate-400">Fecha de ingreso</dt>
-          <dd>{fmt(lead.fecha)}</dd>
+          <dd>
+            {fmt(lead.fecha)} <span className="text-slate-400">· {haceTiempo(lead.fecha, lead.createdAt)}</span>
+          </dd>
         </div>
         <div>
           <dt className="text-xs text-slate-400">Próximo seguimiento</dt>

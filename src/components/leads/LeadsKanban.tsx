@@ -12,6 +12,7 @@ import { FUENTE_LABELS, SUCURSAL_LABELS, ESTADO_LABELS, GERENTE_ALLOWED_ESTADOS,
 import { KANBAN_COLUMNS, columnOf } from "@/lib/kanban";
 import { isOverdue } from "@/lib/leadPolicy";
 import { formatDateOnly } from "@/lib/dateOnly";
+import { haceTiempo } from "@/lib/tiempo";
 import { clicSimple } from "@/lib/abrirEnPanel";
 import type { LeadDTO } from "@/lib/types";
 
@@ -189,7 +190,12 @@ export function LeadsKanban({
                         <h3 className="truncate text-sm font-bold leading-snug text-slate-900" title={l.nombre}>
                           {l.nombre}
                         </h3>
-                        <p className="truncate text-xs text-slate-500">{l.telefono}</p>
+                        <p className="truncate text-xs text-slate-500">
+                          {l.telefono}
+                          {l.estado !== "VENTA" && l.estado !== "PERDIDO" && (
+                            <span title={`Ingresó el ${formatDateOnly(l.fecha, "d MMM yyyy")}`}> · {haceTiempo(l.fecha, l.createdAt)}</span>
+                          )}
+                        </p>
                         <p className="mt-1.5 line-clamp-2 text-xs text-slate-600">{l.interes || "—"}</p>
                         {l.montoVenta && <p className="mt-1.5 text-sm font-bold text-green-700">{money(l.montoVenta)}</p>}
                       </Link>

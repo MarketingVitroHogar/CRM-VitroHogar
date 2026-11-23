@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Logo } from "@/components/ui/Logo";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { PW_NOTICE_DISMISSED_KEY } from "@/lib/accountEvents";
@@ -83,9 +84,8 @@ export default function LoginPage() {
             <label htmlFor="password" className="mb-1 block text-sm font-medium text-slate-700">
               Contraseña
             </label>
-            <input
+            <PasswordInput
               id="password"
-              type="password"
               autoComplete="current-password"
               required
               value={password}

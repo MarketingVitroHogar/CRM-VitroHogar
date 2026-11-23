@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useToast } from "@/components/ui/Toast";
 import type { Role, Sucursal } from "@prisma/client";
 import { OPEN_CHANGE_PASSWORD_EVENT, PW_NOTICE_DISMISSED_KEY } from "@/lib/accountEvents";
@@ -158,20 +159,20 @@ export function AccountSecurity({ passwordChanged, role, username, sucursal }: {
             <label htmlFor="pw-actual" className="mb-1 block text-sm font-medium text-slate-700">
               Contraseña actual
             </label>
-            <input id="pw-actual" type="password" autoComplete="current-password" value={actual} onChange={(e) => setActual(e.target.value)} className={input} required />
+            <PasswordInput id="pw-actual" autoComplete="current-password" value={actual} onChange={(e) => setActual(e.target.value)} className={input} required />
           </div>
           <div>
             <label htmlFor="pw-nueva" className="mb-1 block text-sm font-medium text-slate-700">
               Contraseña nueva
             </label>
-            <input id="pw-nueva" type="password" autoComplete="new-password" value={nueva} onChange={(e) => setNueva(e.target.value)} className={input} required minLength={8} />
+            <PasswordInput id="pw-nueva" autoComplete="new-password" value={nueva} onChange={(e) => setNueva(e.target.value)} className={input} required minLength={8} />
             <p className="mt-1 text-xs text-slate-500">Mínimo 8 caracteres. Debe ser distinta a la actual.</p>
           </div>
           <div>
             <label htmlFor="pw-conf" className="mb-1 block text-sm font-medium text-slate-700">
               Confirmar contraseña nueva
             </label>
-            <input id="pw-conf" type="password" autoComplete="new-password" value={confirmar} onChange={(e) => setConfirmar(e.target.value)} className={input} required />
+            <PasswordInput id="pw-conf" autoComplete="new-password" value={confirmar} onChange={(e) => setConfirmar(e.target.value)} className={input} required />
           </div>
           {error && (
             <p role="alert" className="text-sm text-red-600">

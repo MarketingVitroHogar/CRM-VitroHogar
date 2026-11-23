@@ -8,6 +8,7 @@ import { FUENTE_LABELS, SUCURSAL_LABELS } from "@/lib/catalogs";
 import { isOverdue } from "@/lib/leadPolicy";
 import { formatDateOnly } from "@/lib/dateOnly";
 import { clicSimple } from "@/lib/abrirEnPanel";
+import { haceTiempo } from "@/lib/tiempo";
 import type { LeadDTO } from "@/lib/types";
 
 const money = (v: string | null) => (v == null ? "" : "$" + Math.round(Number(v)).toLocaleString("es-MX"));
@@ -52,7 +53,12 @@ export function LeadsTable({ leads, role, onDelete, onAssign, onEdit }: { leads:
                   <Link href={`/leads/${l.id}`} onClick={(e) => abrir(e, l.id)} className="block max-w-[11rem] truncate font-semibold text-slate-900 hover:underline" title={l.nombre}>
                     {l.nombre}
                   </Link>
-                  <span className="block text-xs text-slate-500">{l.telefono}</span>
+                  <span className="block text-xs text-slate-500">
+                    {l.telefono}
+                    {!cerrado(l) && (
+                      <span title={`Ingresó el ${formatDateOnly(l.fecha, "d MMM yyyy")}`}> · {haceTiempo(l.fecha, l.createdAt)}</span>
+                    )}
+                  </span>
                 </td>
                 <td className="hidden px-2.5 py-2 xl:table-cell">
                   <div className="max-w-44 truncate text-slate-600" title={l.interes}>
@@ -146,6 +152,7 @@ export function LeadsTable({ leads, role, onDelete, onAssign, onEdit }: { leads:
                 <span className="text-xs text-slate-500">
                   {FUENTE_LABELS[l.fuente]}
                   {coord ? ` · ${SUCURSAL_LABELS[l.sucursal]}` : ""}
+                  {!cerrado(l) && ` · ${haceTiempo(l.fecha, l.createdAt)}`}
                 </span>
                 <span className="flex items-center gap-2">
                   {late(l) && <OverdueIndicator />}
