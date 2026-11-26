@@ -125,10 +125,10 @@ export default async function InicioPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-slate-900">
-            {texto}, {username}
+            {texto}, {esAsesor && asesor ? asesor : username}
           </h1>
           <p className="text-sm text-slate-500">
-            {fecha} · {coord ? "Todas las sucursales" : esAsesor ? `Asesor · ${SUCURSAL_LABELS[sucursal!]}` : `Sucursal ${SUCURSAL_LABELS[sucursal!]}`}
+            {fecha} · {coord ? "Todas las sucursales" : esAsesor ? `${asesor ?? "Asesor"} · ${SUCURSAL_LABELS[sucursal!]}` : `Sucursal ${SUCURSAL_LABELS[sucursal!]}`}
           </p>
           <p className="text-xs text-slate-400">Solo se muestran los leads de {mes} (el mes en curso).</p>
         </div>

@@ -21,7 +21,7 @@ const LINKS = [
 ];
 
 /** Menú del usuario: "Cambiar contraseña" y "Salir". Punto rojo mientras no haya cambiado su contraseña. */
-function UserMenu({ username, subtitle, passwordChanged, auto, onAuto }: { username: string; subtitle: string; passwordChanged: boolean; auto: boolean; onAuto: () => void }) {
+function UserMenu({ username, subtitle, passwordChanged, auto, onAuto }: { username: string; /* nombre que se muestra */ subtitle: string; passwordChanged: boolean; auto: boolean; onAuto: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
 
@@ -108,11 +108,14 @@ function UserMenu({ username, subtitle, passwordChanged, auto, onAuto }: { usern
 export function NavBar({
   role,
   username,
+  nombre,
   subtitle,
   passwordChanged,
 }: {
   role: Role;
   username: string;
+  /** Nombre a mostrar en lugar del usuario (los asesores entran con su nómina, pero se muestran por su nombre). */
+  nombre?: string;
   subtitle: string;
   passwordChanged: boolean;
 }) {
@@ -148,7 +151,7 @@ export function NavBar({
           <span className="mx-1 hidden text-slate-300 sm:inline">|</span>
           <AvisosBell role={role} username={username} />
           <ThemeToggle noche={tema.noche} onToggle={() => tema.elegir(tema.noche ? "claro" : "noche")} />
-          <UserMenu username={username} subtitle={subtitle} passwordChanged={passwordChanged} auto={tema.pref === "auto"} onAuto={() => tema.elegir("auto")} />
+          <UserMenu username={nombre ?? username} subtitle={subtitle} passwordChanged={passwordChanged} auto={tema.pref === "auto"} onAuto={() => tema.elegir("auto")} />
         </nav>
       </div>
     </header>
