@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { isOverdue, round2 } from "@/lib/leadPolicy";
 import { FUENTES, FUENTES_TODAS, SUCURSALES } from "@/lib/catalogs";
 import { KANBAN_COLUMNS } from "@/lib/kanban";
+import { mexicoTodayAsUTCDate } from "@/lib/dateOnly";
 
 type Range = { start: Date; end: Date } | null;
 
@@ -13,6 +14,15 @@ function sumMonto(rows: Lead[]): number {
 function conversionRate(ventas: number, perdidos: number): number {
   const denom = ventas + perdidos;
   return denom === 0 ? 0 : round2((ventas / denom) * 100);
+}
+
+/**
+ * Leads → Venta (por cohorte): de los leads que ENTRARON en el periodo, el % que ya está en Venta (a hoy), sin importar
+ * cuándo se cerró. Los leads abiertos todavía pueden cerrar, por eso un periodo reciente siempre sale "parcial".
+ */
+function leadsAVentaRate(ingresados: Lead[]): number {
+  if (ingresados.length === 0) return 0;
+  return round2((ingresados.filter((l) => l.estado === "VENTA").length / ingresados.length) * 100);
 }
 
 async function loadLeads(range: Range, scopeSucursal?: Sucursal | null) {
@@ -44,6 +54,8 @@ function coreMetrics(ingresados: Lead[], cerrados: Lead[]) {
       totalVendido: sumMonto(ventasCerradas),
       ticketPromedio: ventasCerradas.length ? round2(sumMonto(ventasCerradas) / ventasCerradas.length) : 0,
       tasaConversion: conversionRate(ventasCerradas.length, perdidosCerrados.length),
+      leadsAVenta: leadsAVentaRate(ingresados),
+      leadsIngresadosEnVenta: ingresados.filter((l) => l.estado === "VENTA").length,
       sinSeguimientoATiempo: ingresados.filter((l) => isOverdue(l, now)).length,
     },
   };
@@ -149,6 +161,7 @@ export async function getReport(range: Range, scopeSucursal?: Sucursal | null) {
       porcentaje: ingresados.length === 0 ? 0 : round2((ingresadosCanal.length / ingresados.length) * 100),
       ventas: ventasCanal.length,
       monto: sumMonto(ventasCanal),
+      aVenta: leadsAVentaRate(ingresadosCanal),
     };
   })
     // Por volumen; con empate, en el orden del catálogo.
@@ -159,7 +172,7 @@ export async function getReport(range: Range, scopeSucursal?: Sucursal | null) {
     : SUCURSALES.map((sucursal) => {
         const ingresadosSucursal = ingresados.filter((l) => l.sucursal === sucursal);
         const ventasSucursal = ventasCerradas.filter((l) => l.sucursal === sucursal);
-        return { sucursal, total: ingresadosSucursal.length, ventas: ventasSucursal.length, montoVendido: sumMonto(ventasSucursal) };
+        return { sucursal, total: ingresadosSucursal.length, ventas: ventasSucursal.length, montoVendido: sumMonto(ventasSucursal), aVenta: leadsAVentaRate(ingresadosSucursal) };
       }).filter((row) => row.total > 0 || row.ventas > 0);
 
   // Desempeño por asesor (el asesor se guarda como texto; sin asignar = "Sin asignar").
@@ -181,6 +194,7 @@ export async function getReport(range: Range, scopeSucursal?: Sucursal | null) {
       ventas: g.ventas.length,
       monto: sumMonto(g.ventas),
       conversion: conversionRate(g.ventas.length, g.perdidos.length),
+      aVenta: leadsAVentaRate(g.leads),
     }))
     .sort((a, b) => b.monto - a.monto || b.ventas - a.ventas || b.leads - a.leads);
 
@@ -194,5 +208,8 @@ export async function getReport(range: Range, scopeSucursal?: Sucursal | null) {
 
   const tendencia = buildTendencia(ingresados, ventasCerradas, range);
 
-  return { metrics, comparativo, porCanal, porSucursal, porAsesor, embudo, tendencia };
+  // "Parcial": el periodo incluye hoy, así que sus leads abiertos todavía pueden cerrar.
+  const parcial = range ? range.end.getTime() > mexicoTodayAsUTCDate().getTime() : false;
+
+  return { metrics, comparativo, parcial, porCanal, porSucursal, porAsesor, embudo, tendencia };
 }

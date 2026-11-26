@@ -7,7 +7,7 @@ import type { Role, Sucursal } from "@prisma/client";
  * Para anunciar un cambio: agrega la entrada ARRIBA de la lista con una `v` nueva (mayor que las anteriores,
  * p. ej. "2026-11-22") y sube NOVEDADES_VERSION a ese mismo valor. No hay nada más que tocar.
  */
-export const NOVEDADES_VERSION = "2026-11-23";
+export const NOVEDADES_VERSION = "2026-11-25";
 
 /**
  * `roles`: solo para esos perfiles. `sucursales`: solo para los gerentes de esas sucursales (p. ej. un asesor nuevo en una
@@ -16,6 +16,13 @@ export const NOVEDADES_VERSION = "2026-11-23";
 export type Novedad = { icono: string; titulo: string; texto: string; v: string; roles?: Role[]; sucursales?: Sucursal[] };
 
 export const NOVEDADES: Novedad[] = [
+  {
+    icono: "📈",
+    titulo: "Nuevo indicador: Leads → Venta",
+    v: "2026-11-25",
+    texto:
+      "En Reportes ahora ves Leads → Venta: de los leads que ingresaron en el periodo, qué porcentaje ya es venta (también por canal, sucursal y asesor). En el mes en curso sale marcado como parcial, porque los leads abiertos todavía pueden cerrar. La medida anterior se llama ahora Efectividad de cierre: ventas ÷ (ventas + perdidos).",
+  },
   {
     icono: "👥",
     titulo: "Nuevos asesores en Juan Pablo",
