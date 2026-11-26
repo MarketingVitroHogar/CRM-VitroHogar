@@ -113,7 +113,7 @@ export const ASESORES_POR_SUCURSAL: Record<Sucursal, string[]> = {
   ],
   JESUS_MARIA: ["José Ignacio Galván Picón", "Jorge Luis Santana Vargas", "Silvina Martinez Santoyo"],
   GONZALEZ_GALLO: ["Sara Edelia Oregel Jara", "Yolanda Rios Reyes", "Lucía Adriana Salgado Rodríguez"],
-  JUAN_PABLO: ["Mario Rafael Butron Muñoz", "Christian Oswaldo Tavares Hernandez"],
+  JUAN_PABLO: ["Mario Rafael Butron Muñoz", "Christian Oswaldo Tavares Hernandez", "Oscar Fernando Jara Sandoval"],
   GUADALUPE: ["Junior Gamaliel Ramirez Rodriguez", "Mayra Elizabeth Lugo Najar", "Norma Del Carmen Gonzalez Garcia"],
   COLON: ["Alejandra"], // por ahora solo la gerente atiende los leads de Colón
   TLI: ["Cristian", "Karen", "Paola"],

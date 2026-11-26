@@ -7,7 +7,7 @@ import type { Role, Sucursal } from "@prisma/client";
  * Para anunciar un cambio: agrega la entrada ARRIBA de la lista con una `v` nueva (mayor que las anteriores,
  * p. ej. "2026-11-22") y sube NOVEDADES_VERSION a ese mismo valor. No hay nada más que tocar.
  */
-export const NOVEDADES_VERSION = "2026-11-26";
+export const NOVEDADES_VERSION = "2026-11-26-b";
 
 /**
  * `roles`: solo para esos perfiles. `sucursales`: solo para los gerentes de esas sucursales (p. ej. un asesor nuevo en una
@@ -16,6 +16,13 @@ export const NOVEDADES_VERSION = "2026-11-26";
 export type Novedad = { icono: string; titulo: string; texto: string; v: string; roles?: Role[]; sucursales?: Sucursal[] };
 
 export const NOVEDADES: Novedad[] = [
+  {
+    icono: "👥",
+    titulo: "Nuevo asesor en Juan Pablo",
+    v: "2026-11-26-b",
+    sucursales: ["JUAN_PABLO"],
+    texto: "Oscar Fernando Jara Sandoval ya aparece entre los asesores de la sucursal Juan Pablo para que el gerente le asigne leads.",
+  },
   {
     icono: "👋",
     titulo: "Bienvenido al CRM",
