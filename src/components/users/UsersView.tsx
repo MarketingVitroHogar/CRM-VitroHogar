@@ -42,7 +42,12 @@ export function UsersView() {
   const [error, setError] = useState<string | null>(null);
   const [offTarget, setOffTarget] = useState<UserRow | null>(null);
   const [busy, setBusy] = useState(false);
-  const [temp, setTemp] = useState<{ username: string; temporal: string } | null>(null);
+  const [temp, setTemp] = useState<{ username: string; temporal: string; nuevo?: boolean } | null>(null);
+  // Crear la cuenta de un asesor (su usuario es su número de nómina) y cambiar la nómina de una cuenta existente.
+  const [crear, setCrear] = useState<{ sucursal: Sucursal; asesor: string } | null>(null);
+  const [cambiar, setCambiar] = useState<UserRow | null>(null);
+  const [nomina, setNomina] = useState("");
+  const [nominaError, setNominaError] = useState<string | null>(null);
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
   const [q, setQ] = useState("");
 
@@ -86,6 +91,51 @@ export function UsersView() {
       await load();
     } catch (e) {
       toast(e instanceof Error ? e.message : "No se pudo restablecer");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function abrirCrear(sucursal: Sucursal, asesor: string) {
+    setNomina("");
+    setNominaError(null);
+    setCrear({ sucursal, asesor });
+  }
+
+  function abrirCambiar(u: UserRow) {
+    setNomina(u.username);
+    setNominaError(null);
+    setCambiar(u);
+  }
+
+  async function guardarCrear() {
+    if (!crear) return;
+    setBusy(true);
+    setNominaError(null);
+    try {
+      const data = await call("/api/users", "POST", { sucursal: crear.sucursal, asesor: crear.asesor, username: nomina });
+      setCrear(null);
+      setTemp({ username: data.username, temporal: data.temporal, nuevo: true });
+      await load();
+    } catch (e) {
+      setNominaError(e instanceof Error ? e.message : "No se pudo crear el usuario");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function guardarCambiar() {
+    if (!cambiar) return;
+    setBusy(true);
+    setNominaError(null);
+    try {
+      await call(`/api/users/${cambiar.id}`, "PATCH", { username: nomina });
+      const nombre = cambiar.asesor ?? cambiar.username;
+      setCambiar(null);
+      await load();
+      toast(`Nómina de ${nombre} actualizada.`);
+    } catch (e) {
+      setNominaError(e instanceof Error ? e.message : "No se pudo cambiar la nómina");
     } finally {
       setBusy(false);
     }
@@ -159,6 +209,11 @@ export function UsersView() {
         {u.bloqueada && (
           <button className={clsx(btn, "bg-slate-100 text-slate-700 hover:bg-slate-200")} disabled={busy} onClick={() => act(() => call(`/api/users/${u.id}/unlock`, "POST"), "Bloqueo quitado.")}>
             Quitar bloqueo
+          </button>
+        )}
+        {u.role === "asesor" && (
+          <button className={clsx(btn, "bg-slate-100 text-slate-700 hover:bg-slate-200")} disabled={busy} onClick={() => abrirCambiar(u)}>
+            Cambiar nómina
           </button>
         )}
       </div>
@@ -283,7 +338,12 @@ export function UsersView() {
                         ) : (
                           <li key={a.nombre} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
                             <p className="text-sm font-semibold text-slate-500">{a.nombre}</p>
-                            <span className={clsx(chip, "bg-slate-100 text-slate-500")}>Sin usuario todavía</span>
+                            <span className="flex flex-wrap items-center gap-2">
+                              <span className={clsx(chip, "bg-slate-100 text-slate-500")}>Sin usuario todavía</span>
+                              <button className={clsx(btn, "bg-brand text-white hover:bg-brand-dark")} disabled={busy} onClick={() => abrirCrear(p.sucursal, a.nombre)}>
+                                Crear usuario
+                              </button>
+                            </span>
                           </li>
                         )
                       )}
@@ -298,7 +358,7 @@ export function UsersView() {
       </div>
 
       <p className="mt-4 text-xs leading-relaxed text-slate-500">
-        • Toca una sucursal para ver a su gerente y a sus asesores. Los asesores con <b>“Sin usuario todavía”</b> aún no pueden entrar al CRM; su usuario es su número de nómina.
+        • Toca una sucursal para ver a su gerente y a sus asesores. Los asesores con <b>“Sin usuario todavía”</b> aún no pueden entrar al CRM: toca <b>Crear usuario</b> y escribe su número de nómina (ese es su usuario).
         <br />• <b>Desactivar</b>: la persona ya no puede entrar y, si tiene sesión abierta, se le cierra. <b>No se borra nada</b>: sus leads y su historial se conservan y la cuenta se puede reactivar.
         <br />• No se puede desactivar tu propia cuenta ni la última cuenta de Coordinación activa.
         <br />• <b>Restablecer contraseña</b>: genera una contraseña temporal que se muestra una sola vez.
@@ -329,9 +389,92 @@ export function UsersView() {
         </div>
       </Modal>
 
-      <Modal open={!!temp} onClose={() => setTemp(null)} title="Contraseña temporal">
+      <Modal open={!!crear} onClose={() => setCrear(null)} title="Crear usuario de asesor">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void guardarCrear();
+          }}
+        >
+          <p className="text-sm leading-relaxed text-slate-600">
+            Asesor: <b>{crear?.asesor}</b>
+            <br />
+            Sucursal: <b>{crear ? SUCURSAL_LABELS[crear.sucursal] : ""}</b>
+          </p>
+          <label htmlFor="nomina-nueva" className="mt-4 block text-sm font-medium text-slate-700">
+            Número de nómina <span className="font-normal text-slate-400">(será su usuario)</span>
+          </label>
+          <input
+            id="nomina-nueva"
+            autoFocus
+            inputMode="numeric"
+            autoComplete="off"
+            value={nomina}
+            onChange={(e) => setNomina(e.target.value.replace(/[^0-9]/g, ""))}
+            placeholder="Ej. 3294"
+            className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3 py-2 text-base focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand sm:min-h-10 sm:text-sm"
+          />
+          <p className="mt-2 text-xs text-slate-500">Se le dará una contraseña temporal, que verás una sola vez. Al entrar, el asesor elegirá la suya.</p>
+          {nominaError && (
+            <p role="alert" className="mt-2 text-sm text-red-600">
+              {nominaError}
+            </p>
+          )}
+          <div className="mt-5 flex justify-end gap-2">
+            <button type="button" className={clsx(btn, "bg-slate-100 px-4 py-2 text-slate-700 hover:bg-slate-200")} onClick={() => setCrear(null)}>
+              Cancelar
+            </button>
+            <button type="submit" className={clsx(btn, "bg-brand px-4 py-2 text-white hover:bg-brand-dark")} disabled={busy || nomina.length < 3}>
+              {busy ? "Creando…" : "Crear usuario"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal open={!!cambiar} onClose={() => setCambiar(null)} title="Cambiar número de nómina">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void guardarCambiar();
+          }}
+        >
+          <p className="text-sm leading-relaxed text-slate-600">
+            Asesor: <b>{cambiar?.asesor}</b>
+            <br />
+            Usuario actual: <b>{cambiar?.username}</b>
+          </p>
+          <label htmlFor="nomina-cambio" className="mt-4 block text-sm font-medium text-slate-700">
+            Número de nómina correcto <span className="font-normal text-slate-400">(será su usuario)</span>
+          </label>
+          <input
+            id="nomina-cambio"
+            autoFocus
+            inputMode="numeric"
+            autoComplete="off"
+            value={nomina}
+            onChange={(e) => setNomina(e.target.value.replace(/[^0-9]/g, ""))}
+            className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3 py-2 text-base focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand sm:min-h-10 sm:text-sm"
+          />
+          <p className="mt-2 text-xs text-slate-500">Su contraseña no cambia. La próxima vez, el asesor entra con el nuevo número.</p>
+          {nominaError && (
+            <p role="alert" className="mt-2 text-sm text-red-600">
+              {nominaError}
+            </p>
+          )}
+          <div className="mt-5 flex justify-end gap-2">
+            <button type="button" className={clsx(btn, "bg-slate-100 px-4 py-2 text-slate-700 hover:bg-slate-200")} onClick={() => setCambiar(null)}>
+              Cancelar
+            </button>
+            <button type="submit" className={clsx(btn, "bg-brand px-4 py-2 text-white hover:bg-brand-dark")} disabled={busy || nomina.length < 3 || nomina === cambiar?.username}>
+              {busy ? "Guardando…" : "Guardar"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal open={!!temp} onClose={() => setTemp(null)} title={temp?.nuevo ? "Usuario creado" : "Contraseña temporal"}>
         <p className="text-sm text-slate-600">
-          Nueva contraseña temporal para <b>{temp?.username}</b>:
+          {temp?.nuevo ? "Contraseña temporal para el nuevo usuario" : "Nueva contraseña temporal para"} <b>{temp?.username}</b>:
         </p>
         <div className="my-3 select-all rounded-lg border border-dashed border-slate-400 bg-slate-50 p-3 text-center font-mono text-lg tracking-wider">{temp?.temporal}</div>
         <p className="text-xs leading-relaxed text-slate-500">Se muestra una sola vez. Entrégala en persona o por un medio privado. Al entrar, la persona verá el aviso para cambiarla por la suya.</p>

@@ -8,7 +8,7 @@ class C {
   async raw(path, o = {}) { const r = await fetch(BASE + path, { redirect: "manual", ...o, headers: { ...(o.headers ?? {}), cookie: this.cookie() } }); this.absorb(r); return r; }
   async json(path, o) { const r = await this.raw(path, o); let b = null; try { b = await r.json(); } catch {} return { status: r.status, body: b }; }
   send(path, method, data) { return this.json(path, { method, headers: { "Content-Type": "application/json" }, body: data === undefined ? undefined : JSON.stringify(data) }); }
-  async login(u) { const c = await this.raw("/api/auth/csrf"); const { csrfToken } = await c.json(); await this.raw("/api/auth/callback/credentials", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ csrfToken, username: u, password: "ChangeMe123!", json: "true" }) }); return [...this.jar.keys()].some((k) => /session-token/.test(k)); }
+  async login(u, pw = "ChangeMe123!") { const c = await this.raw("/api/auth/csrf"); const { csrfToken } = await c.json(); await this.raw("/api/auth/callback/credentials", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ csrfToken, username: u, password: pw, json: "true" }) }); return [...this.jar.keys()].some((k) => /session-token/.test(k)); }
 }
 let fails = 0;
 const ok = (c, m) => { console.log(c ? "OK   " : "FALLA", m); if (!c) fails++; };
@@ -166,6 +166,51 @@ if (ra.body?.lead?.id) creados.push(ra.body.lead.id);
 ra = await alta("COLON", null, 5);
 ok((ra.status === 201 || ra.status === 200) && ra.body.lead.asesor === null, "Alta en otra sucursal sin asesor: normal");
 if (ra.body?.lead?.id) creados.push(ra.body.lead.id);
+
+// ---- Crear y modificar usuarios: SOLO Coordinación ----
+const OSCAR = "Oscar Fernando Jara Sandoval";
+const loginPw = async (u, pw) => { const c = new C(); await c.login(u, pw); return c; };
+ok((await gTli.send("/api/users", "POST", { sucursal: "JUAN_PABLO", asesor: OSCAR, username: "9101" })).status === 403, "el gerente no puede crear usuarios");
+ok((await karen.send("/api/users", "POST", { sucursal: "JUAN_PABLO", asesor: OSCAR, username: "9101" })).status === 403, "un asesor no puede crear usuarios");
+ok((await coord.send("/api/users", "POST", { sucursal: "JUAN_PABLO", asesor: OSCAR, username: "12" })).status === 400, "nómina de 2 dígitos: rechazada");
+ok((await coord.send("/api/users", "POST", { sucursal: "JUAN_PABLO", asesor: OSCAR, username: "abc123" })).status === 400, "nómina con letras: rechazada");
+ok((await coord.send("/api/users", "POST", { sucursal: "JUAN_PABLO", asesor: "Persona Inventada", username: "9101" })).status === 400, "asesor que no está en el catálogo: rechazado");
+ok((await coord.send("/api/users", "POST", { sucursal: "TLI", asesor: OSCAR, username: "9101" })).status === 400, "asesor de otra sucursal: rechazado");
+let usuarios2 = (await coord.json("/api/users")).body.users;
+let oscar = usuarios2.find((u) => u.asesor === OSCAR && u.sucursal === "JUAN_PABLO");
+let temporal = null;
+if (!oscar) {
+  const r = await coord.send("/api/users", "POST", { sucursal: "JUAN_PABLO", asesor: OSCAR, username: "9101" });
+  ok(r.status === 201 && r.body.username === "9101" && typeof r.body.temporal === "string" && r.body.temporal.length >= 10, "Coordinación crea el usuario de Oscar con su nómina y recibe una contraseña temporal");
+  temporal = r.body.temporal;
+  const sesion = await loginPw("9101", temporal);
+  const yo = await sesion.json("/api/leads");
+  ok(yo.status === 200 && yo.body.leads.length === 0, "Oscar entra con la temporal y no ve leads (aún no tiene asignados)");
+  usuarios2 = (await coord.json("/api/users")).body.users;
+  oscar = usuarios2.find((u) => u.asesor === OSCAR);
+  ok(oscar?.role === "asesor" && oscar.sucursal === "JUAN_PABLO" && oscar.passwordChangedAt === null, "la cuenta nace como asesor de Juan Pablo y con la contraseña sin cambiar");
+  ok((await coord.send("/api/users", "POST", { sucursal: "JUAN_PABLO", asesor: OSCAR, username: "9102" })).status === 409, "no se crea una segunda cuenta para el mismo asesor (409)");
+  ok((await coord.send("/api/users", "POST", { sucursal: "JUAN_PABLO", asesor: "Mario Rafael Butron Muñoz", username: "9101" })).status === 409, "una nómina ya usada se rechaza (409)");
+} else {
+  console.log("(Oscar ya tenía usuario en esta base de prueba: se omiten las pruebas de creación)");
+}
+// Cambiar la nómina
+const nominaActual = oscar.username;
+const nominaNueva = nominaActual === "9101" ? "9102" : "9101";
+ok((await gTli.send(`/api/users/${oscar.id}`, "PATCH", { username: nominaNueva })).status === 403, "el gerente no puede cambiar nóminas");
+ok((await coord.send(`/api/users/${oscar.id}`, "PATCH", { username: "3294" })).status === 409, "cambiar a una nómina que ya existe: 409");
+ok((await coord.send(`/api/users/${oscar.id}`, "PATCH", { username: "x1" })).status === 400, "nómina inválida al cambiar: 400");
+const cuentaGerente = usuarios2.find((u) => u.username === "gerente.tli");
+ok((await coord.send(`/api/users/${cuentaGerente.id}`, "PATCH", { username: "5555" })).status === 400, "no se cambia el usuario de un gerente (400)");
+const rn = await coord.send(`/api/users/${oscar.id}`, "PATCH", { username: nominaNueva });
+ok(rn.status === 200 && rn.body.username === nominaNueva, `Coordinación cambia la nómina de Oscar: ${nominaActual} → ${nominaNueva}`);
+if (temporal) {
+  ok((await loginPw(nominaNueva, temporal)).cookie().includes("session-token"), "con la nómina nueva entra con la misma contraseña");
+  const viejo = await loginPw(nominaActual, temporal);
+  ok(!viejo.cookie().includes("session-token"), "la nómina anterior ya no entra");
+}
+// Devolver la cuenta como estaba
+await coord.send(`/api/users/${oscar.id}`, "PATCH", { username: nominaActual });
 
 // Limpieza: borra los leads de prueba de esta corrida.
 for (const id of creados) await coord.send(`/api/leads/${id}`, "DELETE");
