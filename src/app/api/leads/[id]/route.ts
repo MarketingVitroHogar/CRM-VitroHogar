@@ -16,6 +16,7 @@ import {
   isValidResponsableFor,
   resolveFechaCierre,
 } from "@/lib/leadPolicy";
+import { puedeAsignarAsesor } from "@/lib/asignacion";
 import { Sucursal, Estado } from "@prisma/client";
 
 type Params = { params: Promise<{ id: string }> };
@@ -55,13 +56,18 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (body && typeof body === "object") {
       // Un estado sin cambio no se valida: así un lead que sigue en un estado histórico (Seguimiento / No respondió) se puede editar.
       if (body.estado === existing.estado) delete body.estado;
-      // Coordinación elige la sucursal; el asesor lo asigna el gerente de esa sucursal.
+      // Coordinación elige la sucursal; el asesor lo asigna el gerente de esa sucursal (salvo Tienda en línea, que también asigna Coordinación).
       if (session.user.role === "coord" && "asesor" in body) {
         const pedido = (typeof body.asesor === "string" ? body.asesor.trim() : "") || null;
         if (pedido !== (existing.asesor ?? null)) {
-          throw new ForbiddenError("Coordinación no asigna asesor: lo asigna el gerente de la sucursal.");
+          // Solo cuenta la sucursal en la que quedará el lead (si en el mismo guardado la cambia).
+          const sucursalFinal = (typeof body.sucursal === "string" ? body.sucursal : existing.sucursal) as Sucursal;
+          if (!puedeAsignarAsesor("coord", sucursalFinal)) {
+            throw new ForbiddenError("Coordinación asigna asesor solo en Tienda en línea; en las demás sucursales lo asigna el gerente.");
+          }
+        } else {
+          delete body.asesor; // sin cambio
         }
-        delete body.asesor;
       }
     }
     const schema = session.user.role === "coord" ? LeadCoordUpdateSchema : session.user.role === "asesor" ? LeadAsesorUpdateSchema : LeadGerenteUpdateSchema;

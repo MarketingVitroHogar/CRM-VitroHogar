@@ -9,6 +9,7 @@ import { OverdueIndicator } from "./OverdueIndicator";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { FUENTE_LABELS, SUCURSAL_LABELS, ESTADO_LABELS, GERENTE_ALLOWED_ESTADOS, asesoresFor } from "@/lib/catalogs";
+import { puedeAsignarAsesor } from "@/lib/asignacion";
 import { KANBAN_COLUMNS, columnOf } from "@/lib/kanban";
 import { isOverdue } from "@/lib/leadPolicy";
 import { formatDateOnly } from "@/lib/dateOnly";
@@ -215,7 +216,7 @@ export function LeadsKanban({
                           <span className="truncate" title={l.asesor}>
                             {l.asesor.split(" ").slice(0, 2).join(" ")}
                           </span>
-                        ) : l.estado === "VENTA" || l.estado === "PERDIDO" || role !== "gerente" ? (
+                        ) : l.estado === "VENTA" || l.estado === "PERDIDO" || !puedeAsignarAsesor(role, l.sucursal) ? (
                           <span>Sin asesor</span>
                         ) : (
                           <button

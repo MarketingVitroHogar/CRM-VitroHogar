@@ -22,7 +22,7 @@ export const NOVEDADES: Novedad[] = [
     v: "2026-11-26",
     roles: ["asesor"],
     texto:
-      "Aquí ves los leads que tu gerente te asigna. Abre un lead para actualizar su estado, seguimiento, notas, folios y venta. En Inicio ves tus pendientes y tu desempeño del mes, y en Reportes los números de tu sucursal. Puedes cambiar tu contraseña desde tu nombre de usuario, arriba a la derecha.",
+      "Tu usuario es tu número de nómina. Aquí ves los leads que te asignan. Abre un lead para actualizar su estado, seguimiento, notas, folios y venta. En Inicio ves tus pendientes y tu desempeño del mes, y en Reportes los números de tu sucursal. Puedes cambiar tu contraseña desde tu nombre de usuario, arriba a la derecha.",
   },
   {
     icono: "🧑‍💼",
@@ -30,15 +30,15 @@ export const NOVEDADES: Novedad[] = [
     v: "2026-11-26",
     sucursales: ["TLI"],
     texto:
-      "Cristian, Karen y Paola ya pueden entrar al CRM con su propio usuario y ver solo los leads que tú les asignes. Ellos actualizan el estado, el seguimiento, las notas y las ventas de sus leads; tú sigues asignando los leads y ves todos los de la sucursal. Coordinación les entrega su usuario y contraseña inicial.",
+      "Cristian, Karen y Paola ya pueden entrar al CRM con su propio usuario (su número de nómina) y ver solo los leads que se les asignen. Ellos actualizan el estado, el seguimiento, las notas y las ventas de sus leads. Los leads de la sucursal los pueden asignar tanto tú como Coordinación, y tú ves todos los de la sucursal. Coordinación les entrega su contraseña inicial.",
   },
   {
     icono: "🔐",
-    titulo: "Cuentas de asesores en Usuarios",
+    titulo: "Asesores de Tienda en línea: cuentas y asignación",
     v: "2026-11-26",
     roles: ["coord"],
     texto:
-      "Los asesores de Tienda en línea ya tienen cuenta. En la pestaña Usuarios aparecen como Asesor y puedes activarlas, desactivarlas o restablecer su contraseña igual que las demás.",
+      "Los asesores de Tienda en línea ya tienen cuenta y su usuario es su número de nómina. En la pestaña Usuarios aparecen como Asesor y puedes activarlas, desactivarlas o restablecer su contraseña igual que las demás. Además, ahora puedes asignar el asesor de los leads de Tienda en línea (botón Asignar asesor o al editar el lead); en las demás sucursales lo sigue asignando el gerente.",
   },
   {
     icono: "👥",

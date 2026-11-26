@@ -5,6 +5,7 @@ import type { Role } from "@prisma/client";
 import { EstadoBadge } from "./EstadoBadge";
 import { OverdueIndicator } from "./OverdueIndicator";
 import { FUENTE_LABELS, SUCURSAL_LABELS } from "@/lib/catalogs";
+import { puedeAsignarAsesor } from "@/lib/asignacion";
 import { isOverdue, round2 } from "@/lib/leadPolicy";
 import { formatDateOnly } from "@/lib/dateOnly";
 import { clicSimple } from "@/lib/abrirEnPanel";
@@ -124,7 +125,7 @@ export function LeadCard({
       </dl>
 
       <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-3">
-        {!lead.asesor && lead.estado !== "VENTA" && lead.estado !== "PERDIDO" && role === "gerente" && (
+        {!lead.asesor && lead.estado !== "VENTA" && lead.estado !== "PERDIDO" && puedeAsignarAsesor(role, lead.sucursal) && (
           <button onClick={() => onAssign(lead)} className="rounded-md bg-brand px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-dark">
             Asignar asesor
           </button>

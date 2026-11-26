@@ -5,6 +5,7 @@ import type { Role } from "@prisma/client";
 import { EstadoBadge } from "./EstadoBadge";
 import { OverdueIndicator } from "./OverdueIndicator";
 import { FUENTE_LABELS, SUCURSAL_LABELS } from "@/lib/catalogs";
+import { puedeAsignarAsesor } from "@/lib/asignacion";
 import { isOverdue } from "@/lib/leadPolicy";
 import { formatDateOnly } from "@/lib/dateOnly";
 import { clicSimple } from "@/lib/abrirEnPanel";
@@ -25,7 +26,7 @@ export function LeadsTable({ leads, role, onDelete, onAssign, onEdit }: { leads:
     }
   };
   const coord = role === "coord";
-  const gerente = role === "gerente"; // solo el gerente asigna asesor
+  // El gerente asigna asesor en su sucursal; Coordinación, solo en Tienda en línea.
   return (
     <>
       <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white md:block">
@@ -89,7 +90,7 @@ export function LeadsTable({ leads, role, onDelete, onAssign, onEdit }: { leads:
                     <div className="max-w-32 truncate" title={l.asesor}>
                       {l.asesor.split(" ").slice(0, 2).join(" ")}
                     </div>
-                  ) : cerrado(l) || !gerente ? (
+                  ) : cerrado(l) || !puedeAsignarAsesor(role, l.sucursal) ? (
                     "—"
                   ) : (
                     <button onClick={() => onAssign(l)} className="rounded-md bg-brand px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand-dark">
@@ -160,7 +161,7 @@ export function LeadsTable({ leads, role, onDelete, onAssign, onEdit }: { leads:
                 </span>
               </div>
             </Link>
-            {!l.asesor && !cerrado(l) && gerente && (
+            {!l.asesor && !cerrado(l) && puedeAsignarAsesor(role, l.sucursal) && (
               <button onClick={() => onAssign(l)} className="min-h-11 w-full border-t border-slate-100 bg-red-50 text-sm font-semibold text-brand hover:bg-red-100">
                 Asignar asesor
               </button>

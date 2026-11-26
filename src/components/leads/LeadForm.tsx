@@ -15,6 +15,7 @@ import {
   asesoresFor,
 } from "@/lib/catalogs";
 import { responsableOptionsFor, defaultResponsableFor } from "@/lib/leadPolicy";
+import { puedeAsignarAsesor } from "@/lib/asignacion";
 import { formatDateOnly } from "@/lib/dateOnly";
 import type { LeadDTO } from "@/lib/types";
 import { LEADS_CHANGED_EVENT } from "./AsignarDialog";
@@ -195,7 +196,7 @@ export function LeadForm({
     };
 
     // El asesor lo asigna solo el gerente; Coordinación no lo envía.
-    if (!isCoord && !isAsesor) basePayload.asesor = values.asesor || null;
+    if (!isAsesor && puedeAsignarAsesor(role, values.sucursal)) basePayload.asesor = values.asesor || null;
 
     const payload = canEditCoreFields
       ? {
@@ -375,7 +376,7 @@ export function LeadForm({
           </div>
         )}
 
-        {isCoord || isAsesor ? (
+        {isAsesor || !puedeAsignarAsesor(role, watchedSucursal) ? (
           <div>
             <label className={labelClass}>Asesor asignado</label>
             <p className="rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700">{lead?.asesor || "Sin asignar"}</p>
