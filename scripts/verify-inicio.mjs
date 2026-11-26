@@ -54,7 +54,7 @@ async function main() {
   console.log("\n== Coordinación ==");
   const C = await coord.text("/inicio");
   check("carga (200)", C.status === 200);
-  for (const t of ["Por revisar hoy", "Leads sin asignar", "Leads sin atender", "Leads cargados", "Hoy", "Esta semana", "Este mes", "Desempeño de la red este mes", "Leads del mes", "Ventas del mes", "Total vendido", "Conversión", "Sucursales este mes", "Leads por canal este mes", "Ventas cerradas este mes", "+ Nuevo lead"])
+  for (const t of ["Por revisar hoy", "Leads sin asignar", "Leads sin atender", "Leads cargados", "Hoy", "Esta semana", "Este mes", "Desempeño de la red este mes", "Leads del mes", "Ventas del mes", "Total vendido", "Efectividad de cierre", "Sucursales este mes", "Leads por canal este mes", "Ventas cerradas este mes", "+ Nuevo lead"])
     check(`muestra «${t}»`, C.text.includes(t));
   check("NO muestra la sección propia del gerente", !C.text.includes("Tus pendientes") && !C.text.includes("Desempeño por asesor") && !C.text.includes("Seguimientos de hoy"));
   check("Coordinación ve varias sucursales", ["Blvd. Zacatecas", "Colón", "Haciendas"].filter((s) => C.text.includes(s)).length >= 2);

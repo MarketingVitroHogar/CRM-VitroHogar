@@ -315,7 +315,7 @@ export default async function InicioPage() {
           <MetricCard label="Leads del mes" value={String(m.totalLeads)} hint={`${m.leadsEnProceso} en proceso`} delta={delta(m.totalLeads, c?.totalLeads)} />
           <MetricCard label="Ventas del mes" value={String(m.ventas)} hint={m.ventas ? `Ticket promedio ${money(m.ticketPromedio)}` : undefined} delta={delta(m.ventas, c?.ventas)} />
           <MetricCard label="Total vendido" value={money(m.totalVendido)} delta={delta(m.totalVendido, c?.totalVendido)} />
-          <MetricCard label="Conversión" value={`${m.tasaConversion}%`} hint="ventas ÷ (ventas + perdidos)" delta={delta(m.tasaConversion, c?.tasaConversion, { puntos: true })} />
+          <MetricCard label="Efectividad de cierre" value={`${m.tasaConversion}%`} hint="ventas ÷ (ventas + perdidos)" delta={delta(m.tasaConversion, c?.tasaConversion, { puntos: true })} />
         </div>
 
         <div className={esAsesor ? "mt-4 grid gap-4" : "mt-4 grid gap-4 lg:grid-cols-2"}>

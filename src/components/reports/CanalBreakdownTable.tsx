@@ -8,6 +8,7 @@ export type CanalRow = {
   porcentaje: number;
   ventas: number;
   monto: number;
+  aVenta: number;
 };
 
 export function CanalBreakdownTable({ rows }: { rows: CanalRow[] }) {
@@ -24,6 +25,9 @@ export function CanalBreakdownTable({ rows }: { rows: CanalRow[] }) {
             <th className="px-4 py-2 text-right font-medium text-slate-500">Leads</th>
             <th className="px-4 py-2 text-right font-medium text-slate-500">% del total</th>
             <th className="px-4 py-2 text-right font-medium text-slate-500">Ventas</th>
+            <th className="px-4 py-2 text-right font-medium text-slate-500" title="De los leads que ingresaron en el periodo, el % que ya es venta">
+              % a venta
+            </th>
             <th className="px-4 py-2 text-right font-medium text-slate-500">Monto generado</th>
           </tr>
         </thead>
@@ -34,6 +38,7 @@ export function CanalBreakdownTable({ rows }: { rows: CanalRow[] }) {
               <td className="px-4 py-2 text-right text-slate-700">{row.total}</td>
               <td className="px-4 py-2 text-right text-slate-700">{row.porcentaje}%</td>
               <td className="px-4 py-2 text-right text-slate-700">{row.ventas}</td>
+              <td className="px-4 py-2 text-right text-slate-700">{row.aVenta}%</td>
               <td className="px-4 py-2 text-right text-slate-700">
                 ${row.monto.toLocaleString("es-MX")}
               </td>

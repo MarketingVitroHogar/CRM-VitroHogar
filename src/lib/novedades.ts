@@ -41,6 +41,13 @@ export const NOVEDADES: Novedad[] = [
       "Los asesores de Tienda en línea ya tienen cuenta y su usuario es su número de nómina. La pestaña Usuarios ahora se organiza por sucursal: toca una para ver a su gerente y a sus asesores, y activar, desactivar o restablecer la contraseña de cada cuenta. Además, puedes asignar el asesor de los leads de Tienda en línea: al darlos de alta (el selector aparece solo si eliges TLI), con el botón Asignar asesor o al editar el lead. En las demás sucursales lo sigue asignando el gerente.",
   },
   {
+    icono: "📈",
+    titulo: "Nuevo indicador: Leads → Venta",
+    v: "2026-11-25",
+    texto:
+      "En Reportes ahora ves Leads → Venta: de los leads que ingresaron en el periodo, qué porcentaje ya es venta (también por canal, sucursal y asesor). En el mes en curso sale marcado como parcial, porque los leads abiertos todavía pueden cerrar. La medida anterior se llama ahora Efectividad de cierre: ventas ÷ (ventas + perdidos).",
+  },
+  {
     icono: "👥",
     titulo: "Nuevos asesores en Juan Pablo",
     v: "2026-11-23",

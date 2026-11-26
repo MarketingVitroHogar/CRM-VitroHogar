@@ -7,6 +7,7 @@ export type SucursalRow = {
   total: number;
   ventas: number;
   montoVendido: number;
+  aVenta: number;
 };
 
 export function SucursalBreakdownTable({ rows }: { rows: SucursalRow[] }) {
@@ -22,6 +23,9 @@ export function SucursalBreakdownTable({ rows }: { rows: SucursalRow[] }) {
             <th className="px-3 py-1.5 text-left font-medium text-slate-500">Sucursal</th>
             <th className="px-3 py-1.5 text-right font-medium text-slate-500">Leads</th>
             <th className="px-3 py-1.5 text-right font-medium text-slate-500">Ventas</th>
+            <th className="px-3 py-1.5 text-right font-medium text-slate-500" title="De los leads que ingresaron en el periodo, el % que ya es venta">
+              % a venta
+            </th>
             <th className="px-3 py-1.5 text-right font-medium text-slate-500">Monto</th>
           </tr>
         </thead>
@@ -31,6 +35,7 @@ export function SucursalBreakdownTable({ rows }: { rows: SucursalRow[] }) {
               <td className="px-3 py-1.5 text-slate-800">{SUCURSAL_LABELS[row.sucursal]}</td>
               <td className="px-3 py-1.5 text-right text-slate-700">{row.total}</td>
               <td className="px-3 py-1.5 text-right text-slate-700">{row.ventas}</td>
+              <td className="px-3 py-1.5 text-right text-slate-700">{row.aVenta}%</td>
               <td className="px-3 py-1.5 text-right text-slate-700">
                 ${row.montoVendido.toLocaleString("es-MX")}
               </td>

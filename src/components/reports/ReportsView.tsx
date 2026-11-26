@@ -20,15 +20,18 @@ type Metrics = {
   totalVendido: number;
   ticketPromedio: number;
   tasaConversion: number;
+  leadsAVenta: number;
+  leadsIngresadosEnVenta: number;
   sinSeguimientoATiempo: number;
 };
 
 type ReportData = {
   metrics: Metrics;
   comparativo: { desde: string; hasta: string; metrics: Metrics } | null;
+  parcial: boolean;
   porCanal: CanalRow[];
   porSucursal: SucursalRow[];
-  porAsesor: { asesor: string; sucursal: Sucursal; leads: number; ventas: number; monto: number; conversion: number }[];
+  porAsesor: { asesor: string; sucursal: Sucursal; leads: number; ventas: number; monto: number; conversion: number; aVenta: number }[];
   embudo: { key: string; label: string; dot: string; total: number }[];
   tendencia: { granularidad: "dia" | "semana" | "mes"; puntos: { key: string; label: string; leads: number; ventas: number; monto: number }[] };
 };
@@ -38,8 +41,8 @@ const money = (n: number) => "$" + Math.round(n).toLocaleString("es-MX");
 function Skeleton() {
   return (
     <div className="flex animate-pulse flex-col gap-4" aria-busy="true" aria-label="Cargando reporte">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {Array.from({ length: 8 }).map((_, i) => (
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {Array.from({ length: 9 }).map((_, i) => (
           <div key={i} className="h-24 rounded-lg bg-slate-200/70" />
         ))}
       </div>
@@ -103,15 +106,25 @@ export function ReportsView({ role }: { role: Role }) {
             </p>
           )}
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <MetricCard label="Leads totales" value={String(m.totalLeads)} hint="por fecha de ingreso" delta={d("totalLeads")} />
             <MetricCard label="Leads en proceso" value={String(m.leadsEnProceso)} delta={d("leadsEnProceso")} />
             <MetricCard label="Cotizaciones" value={String(m.cotizaciones)} delta={d("cotizaciones")} />
             <MetricCard label="Ventas" value={String(m.ventas)} hint="por fecha de cierre" delta={d("ventas")} />
             <MetricCard label="Total vendido" value={money(m.totalVendido)} hint="por fecha de cierre" delta={d("totalVendido")} />
-            <MetricCard label="Tasa de conversión" value={`${m.tasaConversion}%`} delta={d("tasaConversion", { puntos: true })} />
-            <MetricCard label="Sin seguimiento a tiempo" value={String(m.sinSeguimientoATiempo)} delta={d("sinSeguimientoATiempo", { menosEsMejor: true })} />
             <MetricCard label="Ticket promedio" value={money(m.ticketPromedio)} hint="total vendido ÷ ventas" delta={d("ticketPromedio")} />
+            <MetricCard
+              label="Leads → Venta"
+              value={`${m.leadsAVenta}%`}
+              hint={
+                data.parcial
+                  ? `${m.leadsIngresadosEnVenta} de ${m.totalLeads} leads del periodo · parcial: los abiertos aún pueden cerrar`
+                  : `${m.leadsIngresadosEnVenta} de ${m.totalLeads} leads del periodo, a hoy`
+              }
+              delta={data.parcial ? null : d("leadsAVenta", { puntos: true })}
+            />
+            <MetricCard label="Efectividad de cierre" value={`${m.tasaConversion}%`} hint="ventas ÷ (ventas + perdidos)" delta={d("tasaConversion", { puntos: true })} />
+            <MetricCard label="Sin seguimiento a tiempo" value={String(m.sinSeguimientoATiempo)} delta={d("sinSeguimientoATiempo", { menosEsMejor: true })} />
           </div>
 
           <section className="min-w-0 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
@@ -150,38 +163,44 @@ export function ReportsView({ role }: { role: Role }) {
                   <table className="min-w-full divide-y divide-slate-200 text-sm">
                     <thead className="sticky top-0 z-10 bg-slate-50 shadow-[0_1px_0_0_var(--color-slate-200)]">
                       <tr>
-                        <th className="px-3 py-1.5 text-left font-medium text-slate-500">Asesor</th>
-                        {role === "coord" && <th className="px-3 py-1.5 text-left font-medium text-slate-500">Sucursal</th>}
-                        <th className="px-3 py-1.5 text-right font-medium text-slate-500">Leads</th>
-                        <th className="px-3 py-1.5 text-right font-medium text-slate-500">Ventas</th>
-                        <th className="px-3 py-1.5 text-right font-medium text-slate-500">Monto</th>
-                        <th className="px-3 py-1.5 text-right font-medium text-slate-500" title="Ventas ÷ (ventas + perdidos)">
-                          Conv.
+                        <th className="px-2 py-1.5 text-left font-medium text-slate-500">Asesor</th>
+                        {role === "coord" && <th className="px-2 py-1.5 text-left font-medium text-slate-500">Sucursal</th>}
+                        <th className="px-2 py-1.5 text-right font-medium text-slate-500">Leads</th>
+                        <th className="px-2 py-1.5 text-right font-medium text-slate-500">Ventas</th>
+                        <th className="px-2 py-1.5 text-right font-medium text-slate-500">Monto</th>
+                        <th className="px-2 py-1.5 text-right font-medium text-slate-500" title="De los leads que ingresaron en el periodo, el % que ya es venta">
+                          % a venta
+                        </th>
+                        <th className="px-2 py-1.5 text-right font-medium text-slate-500" title="Ventas ÷ (ventas + perdidos) cerrados en el periodo">
+                          Cierre
                         </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {data.porAsesor.map((a) => (
                         <tr key={`${a.asesor}-${a.sucursal}`} className={a.asesor === "Sin asignar" ? "text-slate-400" : undefined}>
-                          <td className="max-w-[10rem] truncate px-3 py-1.5 font-medium text-slate-800" title={a.asesor}>
+                          <td className="max-w-[8rem] truncate px-2 py-1.5 font-medium text-slate-800" title={a.asesor}>
                             {a.asesor}
                           </td>
                           {role === "coord" && (
-                            <td className="max-w-[8rem] truncate px-3 py-1.5 text-slate-600" title={SUCURSAL_LABELS[a.sucursal]}>
+                            <td className="max-w-[6rem] truncate px-2 py-1.5 text-slate-600" title={SUCURSAL_LABELS[a.sucursal]}>
                               {SUCURSAL_LABELS[a.sucursal]}
                             </td>
                           )}
-                          <td className="px-3 py-1.5 text-right">{a.leads}</td>
-                          <td className="px-3 py-1.5 text-right font-semibold">{a.ventas}</td>
-                          <td className="whitespace-nowrap px-3 py-1.5 text-right">{money(a.monto)}</td>
-                          <td className="px-3 py-1.5 text-right">{a.conversion}%</td>
+                          <td className="px-2 py-1.5 text-right">{a.leads}</td>
+                          <td className="px-2 py-1.5 text-right font-semibold">{a.ventas}</td>
+                          <td className="whitespace-nowrap px-2 py-1.5 text-right">{money(a.monto)}</td>
+                          <td className="px-2 py-1.5 text-right">{a.aVenta}%</td>
+                          <td className="px-2 py-1.5 text-right">{a.conversion}%</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               )}
-              <p className="mt-1 text-xs text-slate-400">Conv. = ventas ÷ (ventas + perdidos) cerrados en el periodo.</p>
+              <p className="mt-1 text-xs text-slate-400">
+                % a venta = de los leads que ingresaron en el periodo, los que ya son venta. Cierre = ventas ÷ (ventas + perdidos) cerrados en el periodo.
+              </p>
             </section>
           </div>
         </div>
