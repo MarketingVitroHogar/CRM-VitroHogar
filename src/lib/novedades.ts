@@ -38,7 +38,7 @@ export const NOVEDADES: Novedad[] = [
     v: "2026-11-26",
     roles: ["coord"],
     texto:
-      "Los asesores de Tienda en línea ya tienen cuenta y su usuario es su número de nómina. En la pestaña Usuarios aparecen como Asesor y puedes activarlas, desactivarlas o restablecer su contraseña igual que las demás. Además, ahora puedes asignar el asesor de los leads de Tienda en línea (botón Asignar asesor o al editar el lead); en las demás sucursales lo sigue asignando el gerente.",
+      "Los asesores de Tienda en línea ya tienen cuenta y su usuario es su número de nómina. La pestaña Usuarios ahora se organiza por sucursal: toca una para ver a su gerente y a sus asesores, y activar, desactivar o restablecer la contraseña de cada cuenta. Además, puedes asignar el asesor de los leads de Tienda en línea: al darlos de alta (el selector aparece solo si eliges TLI), con el botón Asignar asesor o al editar el lead. En las demás sucursales lo sigue asignando el gerente.",
   },
   {
     icono: "👥",

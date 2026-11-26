@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Fuente, Sucursal } from "@prisma/client";
-import { FUENTES, FUENTE_LABELS, SUCURSALES, SUCURSAL_LABELS, ESTADO_LABELS } from "@/lib/catalogs";
+import { FUENTES, FUENTE_LABELS, SUCURSALES, SUCURSAL_LABELS, ESTADO_LABELS, asesoresFor } from "@/lib/catalogs";
+import { puedeAsignarAsesor } from "@/lib/asignacion";
 import { formatDateOnly } from "@/lib/dateOnly";
 import { formatTelefono, soloDigitos, telefonoValido } from "@/lib/telefono";
 import { useToast } from "@/components/ui/Toast";
@@ -19,7 +20,7 @@ const label = "mb-1 block text-sm font-medium text-slate-700";
 /**
  * Alta rápida de un lead (solo Coordinación): nombre, teléfono, interés, canal y sucursal.
  * Todo lo demás se completa solo: fecha de hoy, estado "Nuevo" y responsable = gerente de la sucursal.
- * El asesor NO se elige aquí: lo asigna después el gerente de la sucursal.
+ * El asesor lo asigna el gerente de la sucursal; solo en Tienda en línea también se puede elegir aquí (o después).
  */
 export function NewLeadForm({
   panel = false,
@@ -43,6 +44,7 @@ export function NewLeadForm({
   const [interes, setInteres] = useState("");
   const [fuente, setFuente] = useState<Fuente | "">("");
   const [sucursal, setSucursal] = useState<Sucursal | "">("");
+  const [asesor, setAsesor] = useState("");
   const [notas, setNotas] = useState("");
   const [fecha, setFecha] = useState("");
   const [masOpciones, setMasOpciones] = useState(false);
@@ -107,6 +109,7 @@ export function NewLeadForm({
       const body: Record<string, unknown> = { nombre: nombre.trim(), telefono: formatTelefono(telefono), interes: interes.trim(), fuente, sucursal };
       if (notas.trim()) body.notas = notas.trim();
       if (fecha) body.fecha = fecha;
+      if (asesor && puedeAsignarAsesor("coord", sucursal)) body.asesor = asesor;
       const res = await fetch("/api/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -132,6 +135,7 @@ export function NewLeadForm({
         setNombre("");
         setTelefono("");
         setInteres("");
+        setAsesor("");
         setNotas("");
         setFecha("");
         setDups([]);
@@ -232,7 +236,10 @@ export function NewLeadForm({
             id="nl-suc"
             className={input}
             value={sucursal}
-            onChange={(e) => setSucursal(e.target.value as Sucursal)}
+            onChange={(e) => {
+              setSucursal(e.target.value as Sucursal);
+              setAsesor(""); // el asesor depende de la sucursal
+            }}
           >
             <option value="">Elige la sucursal…</option>
             {SUCURSALES.map((s) => (
@@ -242,10 +249,28 @@ export function NewLeadForm({
             ))}
           </select>
         </div>
+
+        {/* Solo en Tienda en línea: Coordinación puede elegir el asesor desde el alta */}
+        {sucursal && puedeAsignarAsesor("coord", sucursal) && (
+          <div className={wide}>
+            <label htmlFor="nl-asesor" className={label}>
+              Asesor <span className="font-normal text-slate-400">(opcional; también puedes asignarlo después)</span>
+            </label>
+            <select id="nl-asesor" className={input} value={asesor} onChange={(e) => setAsesor(e.target.value)}>
+              <option value="">— Sin asignar por ahora —</option>
+              {asesoresFor(sucursal).map((a) => (
+                <option key={a} value={a}>
+                  {a}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <p className="-mt-1 text-xs text-slate-500">
-        Entra como <b>Nuevo</b>, con la fecha de hoy y el gerente de la sucursal como responsable. El gerente le asigna asesor.
+        Entra como <b>Nuevo</b>, con la fecha de hoy y el gerente de la sucursal como responsable.{" "}
+        {sucursal && puedeAsignarAsesor("coord", sucursal) ? "En Tienda en línea puedes asignarle asesor ahora o después." : "El gerente le asigna asesor."}
       </p>
 
       <div>

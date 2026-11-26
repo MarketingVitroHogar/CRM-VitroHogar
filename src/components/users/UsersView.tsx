@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import type { Role, Sucursal } from "@prisma/client";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
-import { SUCURSAL_LABELS } from "@/lib/catalogs";
+import { SUCURSALES, SUCURSAL_LABELS, asesoresFor } from "@/lib/catalogs";
 
 type UserRow = {
   id: string;
@@ -19,7 +19,7 @@ type UserRow = {
   isMe: boolean;
 };
 
-const btn = "rounded-md px-3 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40";
+const btn = "min-h-9 rounded-md px-3 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40";
 
 async function call(path: string, method: string, body?: unknown) {
   const res = await fetch(path, { method, headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
@@ -32,6 +32,9 @@ function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric", timeZone: "America/Mexico_City" });
 }
 
+/** Para buscar sin importar acentos ni mayúsculas. */
+const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
 export function UsersView() {
   const { toast, toastNode } = useToast();
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -40,6 +43,8 @@ export function UsersView() {
   const [offTarget, setOffTarget] = useState<UserRow | null>(null);
   const [busy, setBusy] = useState(false);
   const [temp, setTemp] = useState<{ username: string; temporal: string } | null>(null);
+  const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
+  const [q, setQ] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -86,6 +91,106 @@ export function UsersView() {
     }
   }
 
+  // ---- Armado de los paneles: por sucursal, su gerente y sus asesores (los del catálogo, con o sin usuario) ----
+  const paneles = useMemo(() => {
+    return SUCURSALES.map((s) => {
+      const gerentes = users.filter((u) => u.role === "gerente" && u.sucursal === s);
+      const cuentasAsesor = users.filter((u) => u.role === "asesor" && u.sucursal === s);
+      const catalogo = asesoresFor(s);
+      const asesores = [
+        ...catalogo.map((nombre) => ({ nombre, cuenta: cuentasAsesor.find((u) => u.asesor === nombre) ?? null })),
+        // cuentas de asesores que ya no están en el catálogo de la sucursal (por si acaso)
+        ...cuentasAsesor.filter((u) => !catalogo.includes(u.asesor ?? "")).map((u) => ({ nombre: u.asesor ?? u.username, cuenta: u })),
+      ];
+      const cuentas = [...gerentes, ...asesores.map((a) => a.cuenta).filter((c): c is UserRow => !!c)];
+      return {
+        sucursal: s,
+        gerentes,
+        asesores,
+        conUsuario: asesores.filter((a) => a.cuenta).length,
+        bloqueadas: cuentas.filter((c) => c.bloqueada).length,
+        desactivadas: cuentas.filter((c) => !c.activo).length,
+        texto: norm([SUCURSAL_LABELS[s], ...cuentas.map((c) => `${c.username} ${c.asesor ?? ""}`), ...asesores.map((a) => a.nombre)].join(" ")),
+      };
+    });
+  }, [users]);
+
+  const coords = users.filter((u) => u.role === "coord");
+  const busqueda = norm(q.trim());
+  const visibles = busqueda ? paneles.filter((p) => p.texto.includes(busqueda)) : paneles;
+  const totalAsesores = paneles.reduce((n, p) => n + p.asesores.length, 0);
+  const asesoresConUsuario = paneles.reduce((n, p) => n + p.conUsuario, 0);
+
+  const estaAbierto = (key: string) => !!busqueda || abiertos.has(key);
+  const alternar = (key: string) =>
+    setAbiertos((prev) => {
+      const n = new Set(prev);
+      if (n.has(key)) n.delete(key);
+      else n.add(key);
+      return n;
+    });
+
+  function acciones(u: UserRow) {
+    const lastCoord = u.role === "coord" && activeCoords <= 1;
+    const cantOff = u.isMe || lastCoord;
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        {u.activo ? (
+          <button
+            className={clsx(btn, "bg-red-50 text-red-700 hover:bg-red-100")}
+            disabled={busy || cantOff}
+            title={cantOff ? "No disponible para tu propia cuenta ni para la última cuenta de Coordinación" : undefined}
+            onClick={() => setOffTarget(u)}
+          >
+            Desactivar
+          </button>
+        ) : (
+          <button
+            className={clsx(btn, "bg-green-50 text-green-800 hover:bg-green-100")}
+            disabled={busy}
+            onClick={() => act(() => call(`/api/users/${u.id}`, "PATCH", { activo: true }), `Cuenta ${u.username} reactivada.`)}
+          >
+            Reactivar
+          </button>
+        )}
+        <button className={clsx(btn, "bg-slate-100 text-slate-700 hover:bg-slate-200")} disabled={busy || !u.activo} onClick={() => reset(u)}>
+          Restablecer contraseña
+        </button>
+        {u.bloqueada && (
+          <button className={clsx(btn, "bg-slate-100 text-slate-700 hover:bg-slate-200")} disabled={busy} onClick={() => act(() => call(`/api/users/${u.id}/unlock`, "POST"), "Bloqueo quitado.")}>
+            Quitar bloqueo
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  /** Una cuenta: nombre/usuario, estado, contraseña y acciones. */
+  function fila(u: UserRow, titulo: string, detalle: string) {
+    return (
+      <li key={u.id} className={clsx("flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4", !u.activo && "bg-slate-50")}>
+        <div className="min-w-0">
+          <p className={clsx("text-sm font-semibold", u.activo ? "text-slate-900" : "text-slate-400")}>
+            <span className={clsx(!u.activo && "line-through")}>{titulo}</span>
+            {u.isMe && <span className="ml-1.5 text-xs font-normal text-slate-500">(tú)</span>}
+          </p>
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+            <span>
+              Usuario: <b className="font-semibold text-slate-700">{u.username}</b>
+              {detalle && <span> · {detalle}</span>}
+            </span>
+            <span className={clsx("inline-flex rounded-full px-2 py-0.5 font-semibold", u.activo ? "bg-green-100 text-green-800" : "bg-slate-200 text-slate-600")}>{u.activo ? "Activa" : "Desactivada"}</span>
+            {u.bloqueada && <span className="inline-flex rounded-full bg-orange-100 px-2 py-0.5 font-semibold text-orange-800">Bloqueada</span>}
+            {u.passwordChangedAt ? <span className="text-green-700">Contraseña cambiada · {fmtDate(u.passwordChangedAt)}</span> : <span className="text-amber-700">Contraseña sin cambiar</span>}
+          </p>
+        </div>
+        {acciones(u)}
+      </li>
+    );
+  }
+
+  const chip = "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold";
+
   return (
     <div>
       {error && (
@@ -93,89 +198,108 @@ export function UsersView() {
           {error}
         </p>
       )}
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-            <tr>
-              <th className="px-4 py-3 font-medium">Usuario</th>
-              <th className="px-4 py-3 font-medium">Rol</th>
-              <th className="px-4 py-3 font-medium">Sucursal</th>
-              <th className="px-4 py-3 font-medium">Estado</th>
-              <th className="px-4 py-3 font-medium">Contraseña</th>
-              <th className="px-4 py-3 font-medium">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {loading && (
-              <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
-                  Cargando…
-                </td>
-              </tr>
-            )}
-            {users.map((u) => {
-              const lastCoord = u.role === "coord" && activeCoords <= 1;
-              const cantOff = u.isMe || lastCoord;
-              return (
-                <tr key={u.id} className={clsx(!u.activo && "bg-slate-50 text-slate-400")}>
-                  <td className="px-4 py-3 font-semibold">
-                    <span className={clsx(!u.activo && "line-through")}>{u.username}</span>
-                    {u.isMe && <span className="ml-1.5 text-xs font-normal text-slate-500">(tú)</span>}
-                  </td>
-                  <td className="px-4 py-3">{u.role === "coord" ? "Coordinación" : u.role === "asesor" ? `Asesor${u.asesor ? ` · ${u.asesor}` : ""}` : "Gerente"}</td>
-                  <td className="px-4 py-3">{u.sucursal ? SUCURSAL_LABELS[u.sucursal] : "Todas"}</td>
-                  <td className="px-4 py-3">
-                    <span className={clsx("inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold", u.activo ? "bg-green-100 text-green-800" : "bg-slate-200 text-slate-600")}>
-                      {u.activo ? "Activa" : "Desactivada"}
-                    </span>
-                    {u.bloqueada && <span className="ml-1.5 inline-flex rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-semibold text-orange-800">Bloqueada</span>}
-                  </td>
-                  <td className="px-4 py-3 text-xs">
-                    {u.passwordChangedAt ? (
-                      <span className="text-green-700">Cambiada · {fmtDate(u.passwordChangedAt)}</span>
-                    ) : (
-                      <span className="text-amber-700">Sin cambiar</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1.5">
-                      {u.activo ? (
-                        <button
-                          className={clsx(btn, "bg-red-50 text-red-700 hover:bg-red-100")}
-                          disabled={busy || cantOff}
-                          title={cantOff ? "No disponible para tu propia cuenta ni para la última cuenta de Coordinación" : undefined}
-                          onClick={() => setOffTarget(u)}
-                        >
-                          Desactivar
-                        </button>
-                      ) : (
-                        <button
-                          className={clsx(btn, "bg-green-50 text-green-800 hover:bg-green-100")}
-                          disabled={busy}
-                          onClick={() => act(() => call(`/api/users/${u.id}`, "PATCH", { activo: true }), `Cuenta ${u.username} reactivada.`)}
-                        >
-                          Reactivar
-                        </button>
-                      )}
-                      <button className={clsx(btn, "bg-slate-100 text-slate-700 hover:bg-slate-200")} disabled={busy || !u.activo} onClick={() => reset(u)}>
-                        Restablecer contraseña
-                      </button>
-                      {u.bloqueada && (
-                        <button className={clsx(btn, "bg-slate-100 text-slate-700 hover:bg-slate-200")} disabled={busy} onClick={() => act(() => call(`/api/users/${u.id}/unlock`, "POST"), "Bloqueo quitado.")}>
-                          Quitar bloqueo
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+
+      {/* Resumen y herramientas */}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-slate-600">
+          <b className="text-slate-900">{users.filter((u) => u.activo).length}</b> cuentas activas · <b className="text-slate-900">{asesoresConUsuario}</b> de {totalAsesores} asesores ya tienen usuario
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Buscar sucursal, asesor o usuario…"
+            aria-label="Buscar sucursal, asesor o usuario"
+            className="min-h-9 w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand sm:w-64"
+          />
+          <button className={clsx(btn, "bg-slate-100 text-slate-700 hover:bg-slate-200")} onClick={() => setAbiertos(new Set(paneles.map((p) => p.sucursal)))}>
+            Abrir todo
+          </button>
+          <button className={clsx(btn, "bg-slate-100 text-slate-700 hover:bg-slate-200")} onClick={() => setAbiertos(new Set())}>
+            Cerrar todo
+          </button>
+        </div>
       </div>
 
-      <p className="mt-3 text-xs leading-relaxed text-slate-500">
-        • <b>Desactivar</b>: la persona ya no puede entrar y, si tiene sesión abierta, se le cierra. <b>No se borra nada</b>: sus leads y su historial se conservan y la cuenta se puede reactivar.
+      {loading && <p className="py-6 text-center text-sm text-slate-400">Cargando…</p>}
+
+      {/* Coordinación */}
+      {!loading && coords.length > 0 && !busqueda && (
+        <section className="mb-4 overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <h2 className="border-b border-slate-100 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-800">Coordinación</h2>
+          <ul className="divide-y divide-slate-100">{coords.map((u) => fila(u, "Coordinador / Community Manager", "ve todas las sucursales"))}</ul>
+        </section>
+      )}
+
+      {/* Un panel por sucursal */}
+      <div className="flex flex-col gap-3">
+        {visibles.map((p) => {
+          const abierto = estaAbierto(p.sucursal);
+          const gerente = p.gerentes[0];
+          return (
+            <section key={p.sucursal} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+              <button
+                type="button"
+                onClick={() => alternar(p.sucursal)}
+                aria-expanded={abierto}
+                aria-controls={`panel-${p.sucursal}`}
+                className="flex min-h-12 w-full flex-wrap items-center justify-between gap-x-4 gap-y-1.5 px-4 py-3 text-left hover:bg-slate-50"
+              >
+                <span className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                  <span aria-hidden className={clsx("inline-block w-3 text-slate-400 transition-transform", abierto && "rotate-90")}>
+                    ▸
+                  </span>
+                  {SUCURSAL_LABELS[p.sucursal]}
+                </span>
+                <span className="flex flex-wrap items-center gap-1.5">
+                  <span className={clsx(chip, !gerente ? "bg-slate-100 text-slate-500" : gerente.activo ? "bg-green-100 text-green-800" : "bg-slate-200 text-slate-600")}>
+                    Gerente: {!gerente ? "sin cuenta" : gerente.activo ? "activa" : "desactivada"}
+                  </span>
+                  <span className={clsx(chip, p.asesores.length === 0 ? "bg-slate-100 text-slate-500" : p.conUsuario === p.asesores.length ? "bg-green-100 text-green-800" : p.conUsuario > 0 ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-600")}>
+                    {p.asesores.length === 0 ? "Sin asesores registrados" : `Asesores con usuario: ${p.conUsuario} de ${p.asesores.length}`}
+                  </span>
+                  {p.bloqueadas > 0 && <span className={clsx(chip, "bg-orange-100 text-orange-800")}>{p.bloqueadas} bloqueada{p.bloqueadas > 1 ? "s" : ""}</span>}
+                </span>
+              </button>
+
+              {abierto && (
+                <div id={`panel-${p.sucursal}`} className="border-t border-slate-100">
+                  <h3 className="bg-slate-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">Gerente</h3>
+                  {p.gerentes.length === 0 ? (
+                    <p className="px-4 py-3 text-sm text-slate-400">Esta sucursal no tiene cuenta de gerente.</p>
+                  ) : (
+                    <ul className="divide-y divide-slate-100">{p.gerentes.map((u) => fila(u, "Gerente de sucursal", "asigna asesores y ve toda la sucursal"))}</ul>
+                  )}
+
+                  <h3 className="border-t border-slate-100 bg-slate-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">Asesores</h3>
+                  {p.asesores.length === 0 ? (
+                    <p className="px-4 py-3 text-sm text-slate-400">Esta sucursal aún no tiene asesores registrados.</p>
+                  ) : (
+                    <ul className="divide-y divide-slate-100">
+                      {p.asesores.map((a) =>
+                        a.cuenta ? (
+                          fila(a.cuenta, a.nombre, "ve solo sus leads")
+                        ) : (
+                          <li key={a.nombre} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+                            <p className="text-sm font-semibold text-slate-500">{a.nombre}</p>
+                            <span className={clsx(chip, "bg-slate-100 text-slate-500")}>Sin usuario todavía</span>
+                          </li>
+                        )
+                      )}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </section>
+          );
+        })}
+        {!loading && visibles.length === 0 && <p className="py-6 text-center text-sm text-slate-400">Ninguna sucursal, asesor o usuario coincide con “{q}”.</p>}
+      </div>
+
+      <p className="mt-4 text-xs leading-relaxed text-slate-500">
+        • Toca una sucursal para ver a su gerente y a sus asesores. Los asesores con <b>“Sin usuario todavía”</b> aún no pueden entrar al CRM; su usuario es su número de nómina.
+        <br />• <b>Desactivar</b>: la persona ya no puede entrar y, si tiene sesión abierta, se le cierra. <b>No se borra nada</b>: sus leads y su historial se conservan y la cuenta se puede reactivar.
         <br />• No se puede desactivar tu propia cuenta ni la última cuenta de Coordinación activa.
         <br />• <b>Restablecer contraseña</b>: genera una contraseña temporal que se muestra una sola vez.
       </p>

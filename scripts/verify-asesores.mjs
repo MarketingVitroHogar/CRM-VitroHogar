@@ -150,6 +150,23 @@ ok(rc.status === 403, "el gerente de otra sucursal no toca leads de TLI");
 rc = await coord.send(`/api/leads/${leadTli}`, "PATCH", { notas: "coord edita otros campos" });
 ok(rc.status === 200, "Coordinación sigue pudiendo editar el resto de los campos");
 
+// ---- Alta rápida: Coordinación puede elegir asesor SOLO si el destino es TLI ----
+const alta = (suc, asesor, n) => coord.send("/api/leads", "POST", { nombre: `PRUEBA alta ${n}`, telefono: `49288${tag.slice(-3)}${n}0`.slice(0, 10), sucursal: suc, fuente: "TIKTOK", interes: "prueba", ...(asesor ? { asesor } : {}) });
+let ra = await alta("TLI", "Karen", 1);
+ok((ra.status === 201 || ra.status === 200) && ra.body.lead.asesor === "Karen", "Alta en TLI con asesor: queda asignado a Karen");
+if (ra.body?.lead?.id) { creados.push(ra.body.lead.id); ok((await karen.json(`/api/leads/${ra.body.lead.id}`)).status === 200, "Karen ve el lead recién dado de alta"); }
+ra = await alta("TLI", null, 2);
+ok((ra.status === 201 || ra.status === 200) && ra.body.lead.asesor === null, "Alta en TLI sin asesor: queda sin asignar");
+if (ra.body?.lead?.id) creados.push(ra.body.lead.id);
+ra = await alta("TLI", "Alejandra", 3);
+ok(ra.status === 400, `Alta en TLI con asesor de otra sucursal: rechazada (HTTP ${ra.status})`);
+ra = await alta("COLON", "Alejandra", 4);
+ok(ra.status === 400, `Alta en otra sucursal con asesor: rechazada (HTTP ${ra.status})`);
+if (ra.body?.lead?.id) creados.push(ra.body.lead.id);
+ra = await alta("COLON", null, 5);
+ok((ra.status === 201 || ra.status === 200) && ra.body.lead.asesor === null, "Alta en otra sucursal sin asesor: normal");
+if (ra.body?.lead?.id) creados.push(ra.body.lead.id);
+
 // Limpieza: borra los leads de prueba de esta corrida.
 for (const id of creados) await coord.send(`/api/leads/${id}`, "DELETE");
 console.log(`(leads de prueba borrados: ${creados.length})`);

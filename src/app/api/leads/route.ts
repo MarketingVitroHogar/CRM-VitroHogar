@@ -3,10 +3,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { assertCanCreate, ForbiddenError, leadScopeWhere } from "@/lib/permissions";
+import { puedeAsignarAsesor } from "@/lib/asignacion";
 import { LeadCreateSchema } from "@/lib/validation/leadSchemas";
 import {
   autoProximoSeguimientoIfMissing,
   defaultResponsableFor,
+  isValidAsesorFor,
   isValidResponsableFor,
   resolveFechaCierre,
 } from "@/lib/leadPolicy";
@@ -126,11 +128,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Coordinación elige la sucursal; el asesor lo asigna después el gerente.
-    if (data.asesor?.trim()) {
-      return NextResponse.json({ error: "Coordinación no asigna asesor: lo asigna el gerente de la sucursal." }, { status: 400 });
+    // Coordinación elige la sucursal; el asesor lo asigna después el gerente (salvo Tienda en línea, donde Coordinación también puede asignarlo).
+    const asesorPedido = data.asesor?.trim() || null;
+    if (asesorPedido) {
+      if (!puedeAsignarAsesor("coord", sucursal)) {
+        return NextResponse.json({ error: "Coordinación asigna asesor solo en Tienda en línea; en las demás sucursales lo asigna el gerente." }, { status: 400 });
+      }
+      if (!isValidAsesorFor(sucursal, asesorPedido)) {
+        return NextResponse.json({ error: "asesor inválido para la sucursal seleccionada" }, { status: 400 });
+      }
     }
-    const asesor = null;
+    const asesor = asesorPedido;
 
     const estado = (data.estado ?? "NUEVO") as "NUEVO" | "CONTACTADO" | "COTIZACION" | "SEGUIMIENTO" | "NO_RESPONDIO" | "VENTA" | "PERDIDO";
     const fechaCierre = resolveFechaCierre(estado, data.fechaCierre ?? null);
