@@ -12,6 +12,7 @@ type UserRow = {
   username: string;
   role: Role;
   sucursal: Sucursal | null;
+  asesor: string | null;
   activo: boolean;
   passwordChangedAt: string | null;
   bloqueada: boolean;
@@ -121,7 +122,7 @@ export function UsersView() {
                     <span className={clsx(!u.activo && "line-through")}>{u.username}</span>
                     {u.isMe && <span className="ml-1.5 text-xs font-normal text-slate-500">(tú)</span>}
                   </td>
-                  <td className="px-4 py-3">{u.role === "coord" ? "Coordinación" : "Gerente"}</td>
+                  <td className="px-4 py-3">{u.role === "coord" ? "Coordinación" : u.role === "asesor" ? `Asesor${u.asesor ? ` · ${u.asesor}` : ""}` : "Gerente"}</td>
                   <td className="px-4 py-3">{u.sucursal ? SUCURSAL_LABELS[u.sucursal] : "Todas"}</td>
                   <td className="px-4 py-3">
                     <span className={clsx("inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold", u.activo ? "bg-green-100 text-green-800" : "bg-slate-200 text-slate-600")}>

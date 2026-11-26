@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { assertCanCreate, ForbiddenError } from "@/lib/permissions";
+import { assertCanCreate, ForbiddenError, leadScopeWhere } from "@/lib/permissions";
 import { LeadCreateSchema } from "@/lib/validation/leadSchemas";
 import {
   autoProximoSeguimientoIfMissing,
@@ -38,8 +38,8 @@ export async function GET(req: NextRequest) {
 
   // gerente is always scoped server-side to their own branch, regardless of
   // any sucursal query param a client might send.
-  if (session.user.role === "gerente") {
-    where.sucursal = session.user.sucursal;
+  if (session.user.role !== "coord") {
+    Object.assign(where, leadScopeWhere(session.user)); // gerente: su sucursal; asesor: solo sus leads
   } else if (sucursalParam) {
     where.sucursal = sucursalParam;
   }

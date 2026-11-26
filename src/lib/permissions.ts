@@ -11,11 +11,29 @@ export type SessionUser = {
   id: string;
   role: Role;
   sucursal: Sucursal | null;
+  asesor?: string | null;
 };
 
-export function assertCanAccessLead(user: SessionUser, lead: { sucursal: Sucursal }) {
+/**
+ * Filtro de leads que puede ver cada perfil (se aplica SIEMPRE en el servidor):
+ *  - Coordinación: todos.
+ *  - Gerente: los de su sucursal.
+ *  - Asesor: solo los que su gerente le asignó (misma sucursal y su nombre como asesor).
+ */
+export function leadScopeWhere(user: SessionUser): { sucursal?: Sucursal; asesor?: string } {
+  if (user.role === "gerente") return { sucursal: user.sucursal! };
+  if (user.role === "asesor") return { sucursal: user.sucursal!, asesor: user.asesor || "__sin_asesor__" }; // un asesor sin nombre no ve nada
+  return {};
+}
+
+export function assertCanAccessLead(user: SessionUser, lead: { sucursal: Sucursal; asesor?: string | null }) {
   if (user.role === "gerente" && lead.sucursal !== user.sucursal) {
     throw new ForbiddenError("No autorizado para esta sucursal");
+  }
+  if (user.role === "asesor") {
+    if (lead.sucursal !== user.sucursal || !user.asesor || (lead.asesor ?? null) !== user.asesor) {
+      throw new ForbiddenError("No autorizado: este lead no está asignado a ti");
+    }
   }
 }
 
@@ -49,15 +67,27 @@ const GERENTE_EDITABLE_FIELDS = [
   "fechaCierre",
 ] as const;
 
-/** For `gerente`, drops any key outside the whitelist. `coord` may edit everything. */
+// El asesor atiende SUS leads: no cambia de asesor (lo asigna el gerente) ni el responsable.
+const ASESOR_EDITABLE_FIELDS = [
+  "estado",
+  "proximoSeguimiento",
+  "notas",
+  "folioCotizacion",
+  "folioFactura",
+  "montoVenta",
+  "fechaCierre",
+] as const;
+
+/** Para `gerente` y `asesor`, descarta cualquier campo fuera de su lista permitida. `coord` puede editar todo. */
 export function filterEditableFields(
   user: SessionUser,
   patch: Record<string, unknown>
 ): Record<string, unknown> {
   if (user.role === "coord") return patch;
 
+  const fields: readonly string[] = user.role === "asesor" ? ASESOR_EDITABLE_FIELDS : GERENTE_EDITABLE_FIELDS;
   const allowed: Record<string, unknown> = {};
-  for (const key of GERENTE_EDITABLE_FIELDS) {
+  for (const key of fields) {
     if (key in patch) allowed[key] = patch[key];
   }
   return allowed;

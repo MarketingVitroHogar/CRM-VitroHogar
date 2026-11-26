@@ -19,12 +19,13 @@ export type SeguimientoItem = {
  * "sin atender"), ingresados este mes. Los usan Inicio y la campana, para que sus números coincidan.
  * `scope`: sucursal del gerente (null = todas, para Coordinación).
  */
-export async function getSeguimientos(scope: Sucursal | null, take = 6) {
+export async function getSeguimientos(scope: Sucursal | null, take = 6, asesor: string | null = null) {
   const hoy = mexicoTodayAsUTCDate();
   const manana = new Date(hoy.getTime() + DAY);
   const mesInicio = new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth(), 1));
   const where = {
     ...(scope ? { sucursal: scope } : {}),
+    ...(asesor ? { asesor } : {}),
     fecha: { gte: mesInicio, lt: manana },
     proximoSeguimiento: { lt: manana },
     estado: { notIn: ["NUEVO", "VENTA", "PERDIDO"] as ("NUEVO" | "VENTA" | "PERDIDO")[] },

@@ -10,6 +10,7 @@ datasource db {
 enum Role {
   coord
   gerente
+  asesor
 }
 
 enum Sucursal {
@@ -53,7 +54,8 @@ model User {
   username     String    @unique
   passwordHash String
   role         Role
-  sucursal     Sucursal? // null for coord, required for gerente
+  sucursal     Sucursal? // null for coord, required for gerente y asesor
+  asesor       String? // solo rol asesor: su nombre tal como está en el catálogo de asesores de la sucursal (el que se guarda en cada lead)
   createdAt    DateTime  @default(now())
 
   // Seguridad de cuentas
@@ -63,6 +65,7 @@ model User {
   lockedUntil       DateTime? // bloqueo temporal por intentos fallidos
 
   @@index([role])
+  @@unique([sucursal, asesor]) // una sola cuenta por asesor de cada sucursal
 }
 
 model Lead {

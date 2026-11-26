@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
-  const scopeSucursal = session.user.role === "gerente" ? session.user.sucursal : null;
+  const scopeSucursal = session.user.role === "coord" ? null : session.user.sucursal; // gerente y asesor: su sucursal
 
   const { searchParams } = new URL(req.url);
   const from = searchParams.get("from");

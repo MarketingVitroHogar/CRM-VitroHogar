@@ -7,7 +7,7 @@ import type { Role, Sucursal } from "@prisma/client";
  * Para anunciar un cambio: agrega la entrada ARRIBA de la lista con una `v` nueva (mayor que las anteriores,
  * p. ej. "2026-11-22") y sube NOVEDADES_VERSION a ese mismo valor. No hay nada más que tocar.
  */
-export const NOVEDADES_VERSION = "2026-11-23";
+export const NOVEDADES_VERSION = "2026-11-26";
 
 /**
  * `roles`: solo para esos perfiles. `sucursales`: solo para los gerentes de esas sucursales (p. ej. un asesor nuevo en una
@@ -16,6 +16,30 @@ export const NOVEDADES_VERSION = "2026-11-23";
 export type Novedad = { icono: string; titulo: string; texto: string; v: string; roles?: Role[]; sucursales?: Sucursal[] };
 
 export const NOVEDADES: Novedad[] = [
+  {
+    icono: "👋",
+    titulo: "Bienvenido al CRM",
+    v: "2026-11-26",
+    roles: ["asesor"],
+    texto:
+      "Aquí ves los leads que tu gerente te asigna. Abre un lead para actualizar su estado, seguimiento, notas, folios y venta. En Inicio ves tus pendientes y tu desempeño del mes, y en Reportes los números de tu sucursal. Puedes cambiar tu contraseña desde tu nombre de usuario, arriba a la derecha.",
+  },
+  {
+    icono: "🧑‍💼",
+    titulo: "Los asesores de Tienda en línea ya tienen usuario",
+    v: "2026-11-26",
+    sucursales: ["TLI"],
+    texto:
+      "Cristian, Karen y Paola ya pueden entrar al CRM con su propio usuario y ver solo los leads que tú les asignes. Ellos actualizan el estado, el seguimiento, las notas y las ventas de sus leads; tú sigues asignando los leads y ves todos los de la sucursal. Coordinación les entrega su usuario y contraseña inicial.",
+  },
+  {
+    icono: "🔐",
+    titulo: "Cuentas de asesores en Usuarios",
+    v: "2026-11-26",
+    roles: ["coord"],
+    texto:
+      "Los asesores de Tienda en línea ya tienen cuenta. En la pestaña Usuarios aparecen como Asesor y puedes activarlas, desactivarlas o restablecer su contraseña igual que las demás.",
+  },
   {
     icono: "👥",
     titulo: "Nuevos asesores en Juan Pablo",

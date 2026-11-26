@@ -9,9 +9,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
-  const { role, sucursal, username, passwordChanged } = session.user;
+  const { role, sucursal, asesor, username, passwordChanged } = session.user;
   const subtitle =
-    role === "coord" ? "Coordinador / Community Manager" : `Gerente — ${SUCURSAL_LABELS[sucursal!]}`;
+    role === "coord"
+      ? "Coordinador / Community Manager"
+      : role === "asesor"
+        ? `Asesor${asesor ? ` ${asesor}` : ""} — ${SUCURSAL_LABELS[sucursal!]}`
+        : `Gerente — ${SUCURSAL_LABELS[sucursal!]}`;
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">

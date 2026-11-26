@@ -9,6 +9,7 @@ declare module "next-auth" {
       username: string;
       role: Role;
       sucursal: Sucursal | null;
+      asesor: string | null;
       passwordChanged: boolean;
     };
   }
@@ -18,6 +19,7 @@ declare module "next-auth" {
     username: string;
     role: Role;
     sucursal: Sucursal | null;
+    asesor: string | null;
     passwordChanged: boolean;
   }
 }
@@ -28,6 +30,7 @@ declare module "next-auth/jwt" {
     username: string;
     role: Role;
     sucursal: Sucursal | null;
+    asesor: string | null;
     passwordChanged: boolean;
   }
 }

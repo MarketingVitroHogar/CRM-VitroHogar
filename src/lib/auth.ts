@@ -67,6 +67,7 @@ export const authOptions: NextAuthOptions = {
           username: user.username,
           role: user.role,
           sucursal: user.sucursal,
+          asesor: user.asesor,
           passwordChanged: !!user.passwordChangedAt,
         };
       },
@@ -80,6 +81,7 @@ export const authOptions: NextAuthOptions = {
         token.username = user.username;
         token.role = user.role;
         token.sucursal = user.sucursal;
+        token.asesor = user.asesor;
         token.passwordChanged = user.passwordChanged;
         return token;
       }
@@ -88,12 +90,13 @@ export const authOptions: NextAuthOptions = {
       // (las pantallas redirigen al login y las rutas de datos responden 401).
       const current = await prisma.user.findUnique({
         where: { id: token.id },
-        select: { activo: true, role: true, sucursal: true, username: true, passwordChangedAt: true },
+        select: { activo: true, role: true, sucursal: true, asesor: true, username: true, passwordChangedAt: true },
       });
       if (!current || !current.activo) throw new Error("SESSION_REVOKED");
       token.username = current.username;
       token.role = current.role;
       token.sucursal = current.sucursal;
+      token.asesor = current.asesor;
       token.passwordChanged = !!current.passwordChangedAt;
       return token;
     },
@@ -102,6 +105,7 @@ export const authOptions: NextAuthOptions = {
       session.user.username = token.username;
       session.user.role = token.role;
       session.user.sucursal = token.sucursal;
+      session.user.asesor = token.asesor;
       session.user.passwordChanged = token.passwordChanged;
       return session;
     },

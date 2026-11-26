@@ -94,3 +94,17 @@ export const LeadGerenteUpdateSchema = z
     fechaCierre: nullableDateInput,
   })
   .strict();
+
+// El asesor solo actualiza sus propios leads: estado de trabajo, seguimiento, notas, folios y venta.
+// No puede cambiar el asesor (lo asigna el gerente) ni el responsable.
+export const LeadAsesorUpdateSchema = z
+  .object({
+    estado: z.enum(GERENTE_ALLOWED_ESTADOS as [string, ...string[]]).optional(),
+    proximoSeguimiento: nullableDateInput,
+    notas: z.string().trim().optional(),
+    folioCotizacion: z.string().trim().nullish(),
+    folioFactura: z.string().trim().nullish(),
+    montoVenta: z.union([z.number(), z.string(), z.null()]).optional(),
+    fechaCierre: nullableDateInput,
+  })
+  .strict();

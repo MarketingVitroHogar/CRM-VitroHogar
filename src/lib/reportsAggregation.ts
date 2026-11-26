@@ -15,8 +15,8 @@ function conversionRate(ventas: number, perdidos: number): number {
   return denom === 0 ? 0 : round2((ventas / denom) * 100);
 }
 
-async function loadLeads(range: Range, scopeSucursal?: Sucursal | null) {
-  const baseWhere = scopeSucursal ? { sucursal: scopeSucursal } : {};
+async function loadLeads(range: Range, scopeSucursal?: Sucursal | null, asesor?: string | null) {
+  const baseWhere = { ...(scopeSucursal ? { sucursal: scopeSucursal } : {}), ...(asesor ? { asesor } : {}) };
   if (range) {
     const { start, end } = range;
     const [ingresados, cerrados] = await Promise.all([
@@ -120,8 +120,9 @@ function buildTendencia(ingresados: Lead[], ventas: Lead[], range: Range) {
 
 // ---------- Reporte ----------
 
-export async function getReport(range: Range, scopeSucursal?: Sucursal | null) {
-  const { ingresados, cerrados } = await loadLeads(range, scopeSucursal);
+/** `asesor`: solo los leads de ese asesor (para el desempeño personal en Inicio). */
+export async function getReport(range: Range, scopeSucursal?: Sucursal | null, asesor?: string | null) {
+  const { ingresados, cerrados } = await loadLeads(range, scopeSucursal, asesor);
   const { ventasCerradas, perdidosCerrados, metrics } = coreMetrics(ingresados, cerrados);
 
   // Periodo anterior de la misma duración (para comparar). Sin comparación en "todo el tiempo".
@@ -129,7 +130,7 @@ export async function getReport(range: Range, scopeSucursal?: Sucursal | null) {
   if (range) {
     const len = range.end.getTime() - range.start.getTime();
     const prev = { start: new Date(range.start.getTime() - len), end: range.start };
-    const prevData = await loadLeads(prev, scopeSucursal);
+    const prevData = await loadLeads(prev, scopeSucursal, asesor);
     comparativo = {
       desde: isoDay(prev.start),
       hasta: isoDay(new Date(prev.end.getTime() - DAY)),

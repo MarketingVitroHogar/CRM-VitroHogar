@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/apiGuards";
+import { leadScopeWhere } from "@/lib/permissions";
 import { isOverdue } from "@/lib/leadPolicy";
 import { mexicoTodayAsUTCDate } from "@/lib/dateOnly";
 import { getSeguimientos } from "@/lib/seguimientos";
@@ -24,14 +25,15 @@ const MAX_VENTAS = 10;
 export async function GET() {
   const g = await requireSession();
   if (g.error) return g.error;
-  const { role, sucursal } = g.session.user;
+  const { role, sucursal, asesor } = g.session.user;
+  const scope = leadScopeWhere({ id: g.session.user.id, role, sucursal, asesor }); // gerente: su sucursal; asesor: solo sus leads
 
   const desde = inicioDelMes();
   const rows = await prisma.lead.findMany({
     where: {
       estado: "NUEVO",
       fecha: { gte: desde },
-      ...(role === "gerente" ? { sucursal: sucursal! } : {}),
+      ...scope,
     },
     orderBy: { createdAt: "desc" },
     take: 1000,
@@ -42,7 +44,7 @@ export async function GET() {
   const withLate = rows.map((r) => ({ ...r, atrasado: isOverdue({ estado: r.estado, proximoSeguimiento: r.proximoSeguimiento, createdAt: r.createdAt }, now) }));
   const atrasados = withLate.filter((r) => r.atrasado).length;
 
-  const seg = await getSeguimientos(role === "gerente" ? sucursal! : null, 5);
+  const seg = await getSeguimientos(role === "coord" ? null : sucursal!, 5, role === "asesor" ? asesor : null);
 
   if (role !== "coord") {
     return NextResponse.json({

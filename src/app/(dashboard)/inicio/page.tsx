@@ -94,9 +94,10 @@ function Card({ title, aside, children }: { title: string; aside?: React.ReactNo
 export default async function InicioPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
-  const { role, sucursal, username } = session.user;
+  const { role, sucursal, asesor, username } = session.user;
   const coord = role === "coord";
-  const data = await getInicio({ role, sucursal });
+  const esAsesor = role === "asesor"; // el asesor ve solo SUS leads y su propio desempeño
+  const data = await getInicio({ role, sucursal, asesor });
   const { texto, fecha, mes } = saludo();
   const rep = data.reporteMes;
   const m = rep.metrics;
@@ -127,7 +128,7 @@ export default async function InicioPage() {
             {texto}, {username}
           </h1>
           <p className="text-sm text-slate-500">
-            {fecha} · {coord ? "Todas las sucursales" : `Sucursal ${SUCURSAL_LABELS[sucursal!]}`}
+            {fecha} · {coord ? "Todas las sucursales" : esAsesor ? `Asesor · ${SUCURSAL_LABELS[sucursal!]}` : `Sucursal ${SUCURSAL_LABELS[sucursal!]}`}
           </p>
           <p className="text-xs text-slate-400">Solo se muestran los leads de {mes} (el mes en curso).</p>
         </div>
@@ -141,8 +142,9 @@ export default async function InicioPage() {
       {/* ============ TAREAS PENDIENTES ============ */}
       <div>
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{coord ? "Por revisar hoy" : "Tus pendientes"}</h2>
-        <div className="grid gap-4 lg:grid-cols-3">
-          {/* --- Leads sin asignar --- */}
+        <div className={esAsesor ? "grid gap-4 lg:grid-cols-2" : "grid gap-4 lg:grid-cols-3"}>
+          {/* --- Leads sin asignar (el asesor no asigna: sus leads ya vienen asignados) --- */}
+          {!esAsesor && (
           <Tarea
             titulo="Leads sin asignar"
             total={sinAsignar.total}
@@ -158,6 +160,7 @@ export default async function InicioPage() {
               <PorAsignarLista items={sinAsignar.items} total={sinAsignar.total} sucursal={sucursal!} />
             )}
           </Tarea>
+          )}
 
           {/* --- Leads sin atender --- */}
           <Tarea
@@ -302,7 +305,7 @@ export default async function InicioPage() {
       {/* ============ DESEMPEÑO DEL MES ============ */}
       <div>
         <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">{coord ? "Desempeño de la red este mes" : "Desempeño de tu sucursal este mes"}</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">{coord ? "Desempeño de la red este mes" : esAsesor ? "Tu desempeño este mes" : "Desempeño de tu sucursal este mes"}</h2>
           <Link href="/reports" className="text-xs font-semibold text-brand hover:underline">
             Ver reportes completos
           </Link>
@@ -315,7 +318,7 @@ export default async function InicioPage() {
           <MetricCard label="Conversión" value={`${m.tasaConversion}%`} hint="ventas ÷ (ventas + perdidos)" delta={delta(m.tasaConversion, c?.tasaConversion, { puntos: true })} />
         </div>
 
-        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <div className={esAsesor ? "mt-4 grid gap-4" : "mt-4 grid gap-4 lg:grid-cols-2"}>
           <Card title="Leads y ventas del mes">
             <TendenciaChart puntos={rep.tendencia.puntos} />
           </Card>
@@ -339,7 +342,7 @@ export default async function InicioPage() {
                 </ul>
               )}
             </Card>
-          ) : (
+          ) : esAsesor ? null : (
             <Card title="Desempeño por asesor">
               {rep.porAsesor.length === 0 ? (
                 <EstadoVacio compact icono="leads" titulo="Aún no hay leads este mes" texto={coord ? "Cárgalos con el botón + Nuevo lead." : "Aparecerán cuando Coordinación cargue leads para tu sucursal."} />

@@ -7,7 +7,7 @@ import { asesoresFor, SUCURSALES } from "@/lib/catalogs";
 import { KANBAN_COLUMNS, columnOf } from "@/lib/kanban";
 import { getSeguimientos } from "@/lib/seguimientos";
 
-type U = { role: Role; sucursal: Sucursal | null };
+type U = { role: Role; sucursal: Sucursal | null; asesor?: string | null };
 
 const DAY = 86_400_000;
 const ABIERTO = { notIn: ["VENTA", "PERDIDO"] as ("VENTA" | "PERDIDO")[] };
@@ -33,15 +33,16 @@ type PorSucursal = { sucursal: Sucursal; total: number; atrasados: number };
  *  - Solo Coordinación: leads cargados hoy/esta semana y sucursales sin asesores registrados.
  */
 export async function getInicio(user: U) {
-  const scope = user.role === "gerente" ? user.sucursal : null;
-  const sucWhere = scope ? { sucursal: scope } : {};
+  const scope = user.role === "coord" ? null : user.sucursal; // gerente y asesor: su sucursal
+  const miAsesor = user.role === "asesor" ? user.asesor || "__sin_asesor__" : null; // el asesor solo ve SUS leads y su propio desempeño
+  const sucWhere = { ...(scope ? { sucursal: scope } : {}), ...(miAsesor !== null ? { asesor: miAsesor } : {}) };
   const hoy = mexicoTodayAsUTCDate();
   const manana = new Date(hoy.getTime() + DAY);
   const mesInicio = new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth(), 1));
   const lunes = new Date(hoy.getTime() - ((hoy.getUTCDay() + 6) % 7) * DAY);
   const now = new Date();
 
-  const reporteMes = await getReport({ start: mesInicio, end: manana }, scope);
+  const reporteMes = await getReport({ start: mesInicio, end: manana }, scope, miAsesor);
 
   // ---- Sin asignar: leads abiertos del mes que todavía no tienen asesor ----
   const delMes = { gte: mesInicio, lt: manana };
@@ -85,7 +86,7 @@ export async function getInicio(user: U) {
   };
 
   // ---- Seguimientos de hoy o vencidos (leads ya contactados, ingresados este mes): los mismos que cuenta la campana ----
-  const seguimientos = await getSeguimientos(scope, 6);
+  const seguimientos = await getSeguimientos(scope, 6, miAsesor);
 
   // ---- Ventas cerradas este mes (las más recientes) ----
   const ventasRows = await prisma.lead.findMany({

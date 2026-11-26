@@ -74,7 +74,7 @@ function defaultValuesFor(
   // Un gerente no puede elegir "Nuevo" (solo Coordinación lo asigna al crear). Si abre un lead
   // que sigue en "Nuevo", el estado queda "" = sin cambio: así puede, por ejemplo, solo asignar
   // un asesor sin que el lead se marque como Contactado por accidente.
-  const estado = lead?.estado === "NUEVO" && role === "gerente" ? "" : lead?.estado ?? "NUEVO";
+  const estado = lead?.estado === "NUEVO" && role !== "coord" ? "" : lead?.estado ?? "NUEVO";
   return {
     fecha: lead ? toDateInputValue(lead.fecha) : todayDateInputValue(),
     nombre: lead?.nombre ?? "",
@@ -131,6 +131,7 @@ export function LeadForm({
   }, [sucio, onDirty]);
 
   const isCoord = role === "coord";
+  const isAsesor = role === "asesor"; // atiende sus leads: no cambia asesor ni responsable
   const canEditCoreFields = isCoord; // nombre, telefono, sucursal, fuente, interes, fecha
   const watchedSucursal = watch("sucursal");
   const watchedEstado = watch("estado");
@@ -184,7 +185,7 @@ export function LeadForm({
 
     const basePayload: Record<string, unknown> = {
       ...(values.estado ? { estado: values.estado } : {}),
-      responsable: values.responsable,
+      ...(isAsesor ? {} : { responsable: values.responsable }),
       proximoSeguimiento: values.proximoSeguimiento || null,
       notas: values.notas,
       folioCotizacion: values.folioCotizacion || null,
@@ -194,7 +195,7 @@ export function LeadForm({
     };
 
     // El asesor lo asigna solo el gerente; Coordinación no lo envía.
-    if (!isCoord) basePayload.asesor = values.asesor || null;
+    if (!isCoord && !isAsesor) basePayload.asesor = values.asesor || null;
 
     const payload = canEditCoreFields
       ? {
@@ -269,7 +270,7 @@ export function LeadForm({
         </div>
       )}
 
-      {!canEditCoreFields && lead && !lead.asesor && lead.estado !== "VENTA" && lead.estado !== "PERDIDO" && (
+      {!canEditCoreFields && !isAsesor && lead && !lead.asesor && lead.estado !== "VENTA" && lead.estado !== "PERDIDO" && (
         <p className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-900" role="status">
           Este lead aún no tiene asesor. Elige uno en “Asesor asignado” y guarda.
         </p>
@@ -361,18 +362,20 @@ export function LeadForm({
           )}
         </div>
 
-        <div>
-          <label className={labelClass}>Responsable</label>
-          <select className={inputClass} {...register("responsable")}>
-            {responsableOptions.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
-        </div>
+        {!isAsesor && (
+          <div>
+            <label className={labelClass}>Responsable</label>
+            <select className={inputClass} {...register("responsable")}>
+              {responsableOptions.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
-        {isCoord ? (
+        {isCoord || isAsesor ? (
           <div>
             <label className={labelClass}>Asesor asignado</label>
             <p className="rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700">{lead?.asesor || "Sin asignar"}</p>

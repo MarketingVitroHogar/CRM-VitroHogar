@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { leadScopeWhere } from "@/lib/permissions";
 
 /**
  * Posibles duplicados de un teléfono (mismos últimos 10 dígitos), para avisar al capturar un lead a mano.
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
     where: {
       telefono: { contains: digits.slice(-4) },
       ...(excluir ? { id: { not: excluir } } : {}),
-      ...(session.user.role === "gerente" ? { sucursal: session.user.sucursal! } : {}),
+      ...leadScopeWhere(session.user), // gerente: su sucursal; asesor: solo sus leads
     },
     orderBy: { fecha: "desc" },
     take: 200,

@@ -8,7 +8,7 @@ import {
   filterEditableFields,
   ForbiddenError,
 } from "@/lib/permissions";
-import { LeadCoordUpdateSchema, LeadGerenteUpdateSchema } from "@/lib/validation/leadSchemas";
+import { LeadAsesorUpdateSchema, LeadCoordUpdateSchema, LeadGerenteUpdateSchema } from "@/lib/validation/leadSchemas";
 import {
   autoProximoSeguimientoIfMissing,
   defaultResponsableFor,
@@ -64,7 +64,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         delete body.asesor;
       }
     }
-    const schema = session.user.role === "coord" ? LeadCoordUpdateSchema : LeadGerenteUpdateSchema;
+    const schema = session.user.role === "coord" ? LeadCoordUpdateSchema : session.user.role === "asesor" ? LeadAsesorUpdateSchema : LeadGerenteUpdateSchema;
     const parsed = schema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });

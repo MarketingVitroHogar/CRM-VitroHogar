@@ -9,7 +9,7 @@ export async function GET() {
 
   const rows = await prisma.user.findMany({
     orderBy: [{ role: "asc" }, { username: "asc" }],
-    select: { id: true, username: true, role: true, sucursal: true, activo: true, passwordChangedAt: true, lockedUntil: true },
+    select: { id: true, username: true, role: true, sucursal: true, asesor: true, activo: true, passwordChangedAt: true, lockedUntil: true },
   });
   const now = Date.now();
   return NextResponse.json({
@@ -18,6 +18,7 @@ export async function GET() {
       username: u.username,
       role: u.role,
       sucursal: u.sucursal,
+      asesor: u.asesor,
       activo: u.activo,
       passwordChangedAt: u.passwordChangedAt ? u.passwordChangedAt.toISOString() : null,
       bloqueada: !!u.lockedUntil && u.lockedUntil.getTime() > now,

@@ -13,9 +13,9 @@ import { AvisosBell } from "@/components/avisos/AvisosBell";
 import { ThemeToggle, useTema } from "@/components/ui/ThemeToggle";
 
 const LINKS = [
-  { href: "/inicio", label: "Inicio", roles: ["coord", "gerente"] },
-  { href: "/leads", label: "Leads", roles: ["coord", "gerente"] },
-  { href: "/reports", label: "Reportes", roles: ["coord", "gerente"] },
+  { href: "/inicio", label: "Inicio", roles: ["coord", "gerente", "asesor"] },
+  { href: "/leads", label: "Leads", roles: ["coord", "gerente", "asesor"] },
+  { href: "/reports", label: "Reportes", roles: ["coord", "gerente", "asesor"] },
   { href: "/import", label: "Importar Excel", roles: ["coord"] },
   { href: "/users", label: "Usuarios", roles: ["coord"] },
 ];
