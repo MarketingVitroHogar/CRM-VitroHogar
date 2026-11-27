@@ -22,7 +22,7 @@ export const NOVEDADES: Novedad[] = [
     v: "2026-11-27",
     sucursales: ["HACIENDAS"],
     texto:
-      "Jessica Ruvalcaba sustituye a Armando Gonzalez como asesora de Haciendas. Todos los leads que tenía Armando ya están a nombre de Jessica y los puedes asignarle a partir de ahora.",
+      "Jessica Ruvalcaba sustituye a Armando Gonzalez como asesora de Haciendas. Los leads de noviembre que tenía Armando ya están a nombre de Jessica; los de meses anteriores se quedan a nombre de Armando como histórico. A partir de ahora puedes asignarle leads a Jessica.",
   },
   {
     icono: "🔑",
