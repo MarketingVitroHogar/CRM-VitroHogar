@@ -101,7 +101,7 @@ export const ASESORES_POR_SUCURSAL: Record<Sucursal, string[]> = {
     "Edgar Daniel Contreras Morales",
   ],
   UNIVERSIDAD: ["Ernesto Arturo Frausto Esparza", "Luis Fernando Muñoz Muñoz", "Jose Alfredo Macias Rodriguez"],
-  HACIENDAS: ["Saray Salgado", "Miguel Torres", "Armando Gonzalez"],
+  HACIENDAS: ["Saray Salgado", "Miguel Torres", "Jessica Ruvalcaba"],
   LOPEZ_MATEOS: ["Jose Andrés Mireles Cornejo", "Hugo Enrique Gonzalez Lara", "Karen Paola Ponce Reyes"],
   AYUNTAMIENTO: ["Jesús Daniel Pérez Rios", "Karla Fabiola Morales Ramírez", "Bricia Thalía Silva Pérez"],
   PASEO_DE_LA_CRUZ: ["Diana Limon", "David Medellin", "Alejandra Raygoza", "Miriam Cota", "Adrián Perez"],
