@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import type { Sucursal } from "@prisma/client";
 import { AsignarDialog, type AsignarLead } from "@/components/leads/AsignarDialog";
 import { useToast } from "@/components/ui/Toast";
-import { asesoresFor } from "@/lib/catalogs";
+import { useAsesoresFor } from "@/components/AsesoresProvider";
 
 type Item = { id: string; nombre: string; telefono: string; interes: string; sucursal: Sucursal; estado: string; createdAt: string; atrasado: boolean };
 
@@ -23,6 +23,7 @@ export function PorAsignarLista({ items, total, sucursal }: { items: Item[]; tot
   const { toast, toastNode } = useToast();
   const [asignando, setAsignando] = useState<AsignarLead | null>(null);
   const [hechos, setHechos] = useState<Set<string>>(new Set());
+  const asesoresFor = useAsesoresFor();
   const sinRoster = asesoresFor(sucursal).length === 0;
   const visibles = items.filter((l) => !hechos.has(l.id));
 

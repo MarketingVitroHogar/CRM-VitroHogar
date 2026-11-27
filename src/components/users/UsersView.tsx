@@ -5,7 +5,9 @@ import clsx from "clsx";
 import type { Role, Sucursal } from "@prisma/client";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
-import { SUCURSALES, SUCURSAL_LABELS, asesoresFor } from "@/lib/catalogs";
+import { useRouter } from "next/navigation";
+import { SUCURSALES, SUCURSAL_LABELS } from "@/lib/catalogs";
+import { BajaAsesorModal, type AsesorRow } from "./BajaAsesorModal";
 
 type UserRow = {
   id: string;
@@ -50,11 +52,19 @@ export function UsersView() {
   const [nominaError, setNominaError] = useState<string | null>(null);
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
   const [q, setQ] = useState("");
+  const router = useRouter();
+  // Catálogo de asesores (activos y dados de baja), administrado desde aquí por Coordinación.
+  const [catalogo, setCatalogo] = useState<AsesorRow[]>([]);
+  const [agregar, setAgregar] = useState<Sucursal | null>(null);
+  const [nombreNuevo, setNombreNuevo] = useState("");
+  const [agregarError, setAgregarError] = useState<string | null>(null);
+  const [baja, setBaja] = useState<AsesorRow | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const data = await call("/api/users", "GET");
+      const [data, cat] = await Promise.all([call("/api/users", "GET"), call("/api/asesores", "GET")]);
       setUsers(data.users);
+      setCatalogo(cat.asesores);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudieron cargar los usuarios");
@@ -141,29 +151,51 @@ export function UsersView() {
     }
   }
 
-  // ---- Armado de los paneles: por sucursal, su gerente y sus asesores (los del catálogo, con o sin usuario) ----
+  async function guardarAgregar() {
+    if (!agregar) return;
+    setBusy(true);
+    setAgregarError(null);
+    try {
+      const data = await call("/api/asesores", "POST", { sucursal: agregar, nombre: nombreNuevo });
+      setAgregar(null);
+      await load();
+      router.refresh(); // el selector de asesor de las demás pantallas se actualiza
+      toast(data.reactivado ? `${data.nombre} volvió a estar activo.` : `${data.nombre} agregado a ${SUCURSAL_LABELS[agregar]}.`);
+    } catch (e) {
+      setAgregarError(e instanceof Error ? e.message : "No se pudo agregar al asesor");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // ---- Armado de los paneles: por sucursal, su gerente y sus asesores (activos del catálogo, con o sin usuario; y los dados de baja) ----
   const paneles = useMemo(() => {
     return SUCURSALES.map((s) => {
       const gerentes = users.filter((u) => u.role === "gerente" && u.sucursal === s);
       const cuentasAsesor = users.filter((u) => u.role === "asesor" && u.sucursal === s);
-      const catalogo = asesoresFor(s);
-      const asesores = [
-        ...catalogo.map((nombre) => ({ nombre, cuenta: cuentasAsesor.find((u) => u.asesor === nombre) ?? null })),
-        // cuentas de asesores que ya no están en el catálogo de la sucursal (por si acaso)
-        ...cuentasAsesor.filter((u) => !catalogo.includes(u.asesor ?? "")).map((u) => ({ nombre: u.asesor ?? u.username, cuenta: u })),
-      ];
-      const cuentas = [...gerentes, ...asesores.map((a) => a.cuenta).filter((c): c is UserRow => !!c)];
+      const delCatalogo = catalogo.filter((a) => a.sucursal === s);
+      const asesores = delCatalogo
+        .filter((a) => a.activo)
+        .map((a) => ({ fila: a, nombre: a.nombre, cuenta: cuentasAsesor.find((u) => u.asesor === a.nombre) ?? null }));
+      const dadosDeBaja = delCatalogo
+        .filter((a) => !a.activo)
+        .map((a) => ({ fila: a, nombre: a.nombre, cuenta: cuentasAsesor.find((u) => u.asesor === a.nombre) ?? null }));
+      // cuentas de asesores que no están en el catálogo de la sucursal (por si acaso)
+      const sueltas = cuentasAsesor.filter((u) => !delCatalogo.some((a) => a.nombre === u.asesor));
+      const cuentas = [...gerentes, ...asesores.map((a) => a.cuenta).filter((c): c is UserRow => !!c), ...sueltas];
       return {
         sucursal: s,
         gerentes,
         asesores,
+        dadosDeBaja,
+        sueltas,
         conUsuario: asesores.filter((a) => a.cuenta).length,
         bloqueadas: cuentas.filter((c) => c.bloqueada).length,
         desactivadas: cuentas.filter((c) => !c.activo).length,
-        texto: norm([SUCURSAL_LABELS[s], ...cuentas.map((c) => `${c.username} ${c.asesor ?? ""}`), ...asesores.map((a) => a.nombre)].join(" ")),
+        texto: norm([SUCURSAL_LABELS[s], ...cuentas.map((c) => `${c.username} ${c.asesor ?? ""}`), ...asesores.map((a) => a.nombre), ...dadosDeBaja.map((a) => a.nombre)].join(" ")),
       };
     });
-  }, [users]);
+  }, [users, catalogo]);
 
   const coords = users.filter((u) => u.role === "coord");
   const busqueda = norm(q.trim());
@@ -180,7 +212,7 @@ export function UsersView() {
       return n;
     });
 
-  function acciones(u: UserRow) {
+  function acciones(u: UserRow, extra?: React.ReactNode) {
     const lastCoord = u.role === "coord" && activeCoords <= 1;
     const cantOff = u.isMe || lastCoord;
     return (
@@ -216,12 +248,13 @@ export function UsersView() {
             Cambiar nómina
           </button>
         )}
+        {extra}
       </div>
     );
   }
 
-  /** Una cuenta: nombre/usuario, estado, contraseña y acciones. */
-  function fila(u: UserRow, titulo: string, detalle: string) {
+  /** Una cuenta: nombre/usuario, estado, contraseña y acciones. `extra`: botones adicionales (p. ej. "Dar de baja"). */
+  function fila(u: UserRow, titulo: string, detalle: string, extra?: React.ReactNode) {
     return (
       <li key={u.id} className={clsx("flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4", !u.activo && "bg-slate-50")}>
         <div className="min-w-0">
@@ -239,7 +272,7 @@ export function UsersView() {
             {u.passwordChangedAt ? <span className="text-green-700">Contraseña cambiada · {fmtDate(u.passwordChangedAt)}</span> : <span className="text-amber-700">Contraseña sin cambiar</span>}
           </p>
         </div>
-        {acciones(u)}
+        {acciones(u, extra)}
       </li>
     );
   }
@@ -327,14 +360,32 @@ export function UsersView() {
                     <ul className="divide-y divide-slate-100">{p.gerentes.map((u) => fila(u, "Gerente de sucursal", "asigna asesores y ve toda la sucursal"))}</ul>
                   )}
 
-                  <h3 className="border-t border-slate-100 bg-slate-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">Asesores</h3>
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-slate-50 px-4 py-1.5">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Asesores</h3>
+                    <button
+                      className={clsx(btn, "bg-white text-brand ring-1 ring-brand/40 hover:bg-brand/5")}
+                      disabled={busy}
+                      onClick={() => {
+                        setNombreNuevo("");
+                        setAgregarError(null);
+                        setAgregar(p.sucursal);
+                      }}
+                    >
+                      + Agregar asesor
+                    </button>
+                  </div>
                   {p.asesores.length === 0 ? (
                     <p className="px-4 py-3 text-sm text-slate-400">Esta sucursal aún no tiene asesores registrados.</p>
                   ) : (
                     <ul className="divide-y divide-slate-100">
-                      {p.asesores.map((a) =>
-                        a.cuenta ? (
-                          fila(a.cuenta, a.nombre, "ve solo sus leads")
+                      {p.asesores.map((a) => {
+                        const botonBaja = (
+                          <button className={clsx(btn, "bg-red-50 text-red-700 hover:bg-red-100")} disabled={busy} onClick={() => setBaja(a.fila)}>
+                            Dar de baja
+                          </button>
+                        );
+                        return a.cuenta ? (
+                          fila(a.cuenta, a.nombre, "ve solo sus leads", botonBaja)
                         ) : (
                           <li key={a.nombre} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
                             <p className="text-sm font-semibold text-slate-500">{a.nombre}</p>
@@ -343,11 +394,47 @@ export function UsersView() {
                               <button className={clsx(btn, "bg-brand text-white hover:bg-brand-dark")} disabled={busy} onClick={() => abrirCrear(p.sucursal, a.nombre)}>
                                 Crear usuario
                               </button>
+                              {botonBaja}
                             </span>
                           </li>
-                        )
-                      )}
+                        );
+                      })}
                     </ul>
+                  )}
+
+                  {p.sueltas.length > 0 && (
+                    <ul className="divide-y divide-slate-100 border-t border-slate-100">{p.sueltas.map((u) => fila(u, u.asesor ?? u.username, "no está en el catálogo de la sucursal"))}</ul>
+                  )}
+
+                  {p.dadosDeBaja.length > 0 && (
+                    <>
+                      <h3 className="border-t border-slate-100 bg-slate-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">Dados de baja</h3>
+                      <ul className="divide-y divide-slate-100">
+                        {p.dadosDeBaja.map((a) => (
+                          <li key={a.fila.id} className="flex flex-wrap items-center justify-between gap-2 bg-slate-50/60 px-4 py-3">
+                            <p className="text-sm text-slate-500">
+                              <span className="font-semibold">{a.nombre}</span>
+                              <span className="ml-2 text-xs">
+                                {a.fila.leads === 0 ? "sin leads" : `${a.fila.leads} lead${a.fila.leads === 1 ? "" : "s"} a su nombre (histórico)`}
+                                {a.cuenta && ` · usuario ${a.cuenta.username} ${a.cuenta.activo ? "activo" : "desactivado"}`}
+                              </span>
+                            </p>
+                            <button
+                              className={clsx(btn, "bg-green-50 text-green-800 hover:bg-green-100")}
+                              disabled={busy}
+                              onClick={() =>
+                                act(async () => {
+                                  await call(`/api/asesores/${a.fila.id}`, "PATCH", { activo: true });
+                                  router.refresh();
+                                }, `${a.nombre} volvió a estar activo.`)
+                              }
+                            >
+                              Reactivar
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
                   )}
                 </div>
               )}
@@ -362,6 +449,7 @@ export function UsersView() {
         <br />• <b>Desactivar</b>: la persona ya no puede entrar y, si tiene sesión abierta, se le cierra. <b>No se borra nada</b>: sus leads y su historial se conservan y la cuenta se puede reactivar.
         <br />• No se puede desactivar tu propia cuenta ni la última cuenta de Coordinación activa.
         <br />• <b>Restablecer contraseña</b>: genera una contraseña temporal que se muestra una sola vez.
+        <br />• <b>+ Agregar asesor</b> y <b>Dar de baja</b>: tú administras los asesores de cada sucursal. Al dar de baja eliges si sus leads pasan a quien lo sustituye (todos, de un periodo o solo los abiertos) o se quedan a su nombre como histórico. Nada se borra y se puede reactivar.
       </p>
 
       <Modal open={!!offTarget} onClose={() => setOffTarget(null)} title="¿Desactivar esta cuenta?" icon="⏸">
@@ -471,6 +559,60 @@ export function UsersView() {
           </div>
         </form>
       </Modal>
+
+      <Modal open={!!agregar} onClose={() => setAgregar(null)} title="Agregar asesor">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void guardarAgregar();
+          }}
+        >
+          <p className="text-sm text-slate-600">
+            Sucursal: <b>{agregar ? SUCURSAL_LABELS[agregar] : ""}</b>
+          </p>
+          <label htmlFor="asesor-nuevo" className="mt-4 block text-sm font-medium text-slate-700">
+            Nombre del asesor
+          </label>
+          <input
+            id="asesor-nuevo"
+            autoFocus
+            autoComplete="off"
+            value={nombreNuevo}
+            onChange={(e) => setNombreNuevo(e.target.value)}
+            placeholder="Ej. Jessica Ruvalcaba"
+            className="mt-1 min-h-11 w-full rounded-md border border-slate-300 px-3 py-2 text-base focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand sm:min-h-10 sm:text-sm"
+          />
+          <p className="mt-2 text-xs text-slate-500">Desde ese momento el gerente podrá asignarle leads. El usuario para entrar al CRM es opcional y se crea después.</p>
+          {agregarError && (
+            <p role="alert" className="mt-2 text-sm text-red-600">
+              {agregarError}
+            </p>
+          )}
+          <div className="mt-5 flex justify-end gap-2">
+            <button type="button" className={clsx(btn, "bg-slate-100 px-4 py-2 text-slate-700 hover:bg-slate-200")} onClick={() => setAgregar(null)}>
+              Cancelar
+            </button>
+            <button type="submit" className={clsx(btn, "bg-brand px-4 py-2 text-white hover:bg-brand-dark")} disabled={busy || nombreNuevo.trim().length < 2}>
+              {busy ? "Agregando…" : "Agregar"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {baja && (
+        <BajaAsesorModal
+          key={baja.id}
+          asesor={baja}
+          companeros={catalogo.filter((a) => a.sucursal === baja.sucursal && a.activo && a.id !== baja.id)}
+          onClose={() => setBaja(null)}
+          onDone={async (msg) => {
+            setBaja(null);
+            await load();
+            router.refresh(); // el selector de asesor de las demás pantallas se actualiza
+            toast(msg);
+          }}
+        />
+      )}
 
       <Modal open={!!temp} onClose={() => setTemp(null)} title={temp?.nuevo ? "Usuario creado" : "Contraseña temporal"}>
         <p className="text-sm text-slate-600">

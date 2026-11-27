@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireCoord } from "@/lib/apiGuards";
-import { SUCURSALES, asesoresFor } from "@/lib/catalogs";
+import { SUCURSALES } from "@/lib/catalogs";
+import { asesoresActivos } from "@/lib/asesores";
 import { NOMINA_AYUDA, parseNomina } from "@/lib/nomina";
 import { generateTempPassword, hashPassword } from "@/lib/password";
 
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
   if (!nomina) return NextResponse.json({ error: NOMINA_AYUDA }, { status: 400 });
 
   // El nombre debe ser exactamente el del catálogo de la sucursal: es el que se guarda en cada lead.
-  if (!asesoresFor(sucursalOk).includes(asesor)) {
+  if (!(await asesoresActivos(sucursalOk)).includes(asesor)) {
     return NextResponse.json({ error: "Ese asesor no está en el catálogo de la sucursal" }, { status: 400 });
   }
   if (await prisma.user.findFirst({ where: { sucursal: sucursalOk, asesor } })) {

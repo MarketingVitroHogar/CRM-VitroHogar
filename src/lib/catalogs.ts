@@ -87,38 +87,6 @@ export function gerenteUsername(sucursal: Sucursal): string {
   return `gerente.${sucursal.toLowerCase()}`;
 }
 
-// Roster of asesores (vendedores de piso) por sucursal, distinto de
-// "responsable" (quién da seguimiento a nivel CRM: CM/Coordinador/Gerente).
-export const ASESORES_POR_SUCURSAL: Record<Sucursal, string[]> = {
-  BLVD_ZACATECAS: [
-    "Genaro Samuel Alvarado Melesio",
-    "Raul Esparza Gonzalez",
-    "Jose Andres Hernandez Romero",
-    "Yuridia Marlenne Moreno Cruz",
-    "Karen Arely Ortega Hernandez",
-    "Juan Angel Ramirez Salazar",
-    "Adriana Rodriguez Mora",
-    "Edgar Daniel Contreras Morales",
-  ],
-  UNIVERSIDAD: ["Ernesto Arturo Frausto Esparza", "Luis Fernando Muñoz Muñoz", "Jose Alfredo Macias Rodriguez"],
-  HACIENDAS: ["Saray Salgado", "Miguel Torres", "Jessica Ruvalcaba"],
-  LOPEZ_MATEOS: ["Jose Andrés Mireles Cornejo", "Hugo Enrique Gonzalez Lara", "Karen Paola Ponce Reyes"],
-  AYUNTAMIENTO: ["Jesús Daniel Pérez Rios", "Karla Fabiola Morales Ramírez", "Bricia Thalía Silva Pérez"],
-  PASEO_DE_LA_CRUZ: ["Diana Limon", "David Medellin", "Alejandra Raygoza", "Miriam Cota", "Adrián Perez"],
-  RINCON_DE_ROMOS: [
-    "Ma del Rocío Flores Roa",
-    "Wendoline Calderón Márgenes",
-    "José Armando Suárez Salazar",
-    "José Luis Ureña Ovalle",
-  ],
-  JESUS_MARIA: ["José Ignacio Galván Picón", "Jorge Luis Santana Vargas", "Silvina Martinez Santoyo"],
-  GONZALEZ_GALLO: ["Sara Edelia Oregel Jara", "Yolanda Rios Reyes", "Lucía Adriana Salgado Rodríguez"],
-  JUAN_PABLO: ["Mario Rafael Butron Muñoz", "Christian Oswaldo Tavares Hernandez", "Oscar Fernando Jara Sandoval"],
-  GUADALUPE: ["Junior Gamaliel Ramirez Rodriguez", "Mayra Elizabeth Lugo Najar", "Norma Del Carmen Gonzalez Garcia"],
-  COLON: ["Alejandra"], // por ahora solo la gerente atiende los leads de Colón
-  TLI: ["Cristian", "Karen", "Paola"],
-};
-
-export function asesoresFor(sucursal: Sucursal): string[] {
-  return ASESORES_POR_SUCURSAL[sucursal];
-}
+// Los asesores (vendedores de piso) de cada sucursal ya no viven aquí: están en la base de datos (tabla Asesor) y los administra
+// Coordinación desde Usuarios → Asesores. Se leen con getRoster() / asesoresActivos() (src/lib/asesores.ts) en el servidor y con
+// useAsesoresFor() (AsesoresProvider) en las pantallas. Son distintos de "responsable" (CM / Coordinador / Gerente).

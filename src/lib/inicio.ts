@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getReport } from "@/lib/reportsAggregation";
 import { isOverdue } from "@/lib/leadPolicy";
 import { mexicoTodayAsUTCDate } from "@/lib/dateOnly";
-import { asesoresFor, SUCURSALES } from "@/lib/catalogs";
+import { SUCURSALES } from "@/lib/catalogs";
+import { getRoster } from "@/lib/asesores";
 import { KANBAN_COLUMNS, columnOf } from "@/lib/kanban";
 import { getSeguimientos } from "@/lib/seguimientos";
 
@@ -144,7 +145,8 @@ export async function getInicio(user: U) {
       prisma.lead.count({ where: { fecha: { gte: lunes, lt: manana } } }),
     ]);
     captura = { hoy: cHoy, semana: cSemana, mes: reporteMes.metrics.totalLeads };
-    sucursalesSinAsesores = SUCURSALES.filter((s) => asesoresFor(s).length === 0);
+    const roster = await getRoster();
+    sucursalesSinAsesores = SUCURSALES.filter((s) => roster[s].length === 0);
   }
 
   return {

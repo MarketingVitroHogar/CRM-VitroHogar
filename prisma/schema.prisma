@@ -64,8 +64,8 @@ model User {
   failedLoginCount  Int       @default(0) // intentos fallidos seguidos
   lockedUntil       DateTime? // bloqueo temporal por intentos fallidos
 
-  @@index([role])
   @@unique([sucursal, asesor]) // una sola cuenta por asesor de cada sucursal
+  @@index([role])
 }
 
 model Lead {
@@ -98,4 +98,18 @@ model Lead {
   @@index([estado])
   @@index([fecha])
   @@index([fechaCierre])
+}
+
+// Catálogo de asesores (vendedores de piso) de cada sucursal. Lo administra Coordinación desde Usuarios → Asesores.
+// Dar de baja = activo:false (no se borra: los leads y reportes históricos conservan el nombre).
+model Asesor {
+  id        String   @id @default(cuid())
+  sucursal  Sucursal
+  nombre    String
+  activo    Boolean  @default(true)
+  orden     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@unique([sucursal, nombre])
+  @@index([sucursal, activo])
 }

@@ -8,10 +8,10 @@ import { LeadCreateSchema } from "@/lib/validation/leadSchemas";
 import {
   autoProximoSeguimientoIfMissing,
   defaultResponsableFor,
-  isValidAsesorFor,
   isValidResponsableFor,
   resolveFechaCierre,
 } from "@/lib/leadPolicy";
+import { isValidAsesorFor } from "@/lib/asesores";
 import { dayRangeUTC, mexicoTodayAsUTCDate, monthRangeUTC } from "@/lib/dateOnly";
 import { searchLeadIds } from "@/lib/leadSearch";
 import { isDateStr } from "@/lib/periodos";
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
       if (!puedeAsignarAsesor("coord", sucursal)) {
         return NextResponse.json({ error: "Coordinación asigna asesor solo en Tienda en línea; en las demás sucursales lo asigna el gerente." }, { status: 400 });
       }
-      if (!isValidAsesorFor(sucursal, asesorPedido)) {
+      if (!(await isValidAsesorFor(sucursal, asesorPedido))) {
         return NextResponse.json({ error: "asesor inválido para la sucursal seleccionada" }, { status: 400 });
       }
     }

@@ -7,7 +7,7 @@ import type { Role, Sucursal } from "@prisma/client";
  * Para anunciar un cambio: agrega la entrada ARRIBA de la lista con una `v` nueva (mayor que las anteriores,
  * p. ej. "2026-11-22") y sube NOVEDADES_VERSION a ese mismo valor. No hay nada más que tocar.
  */
-export const NOVEDADES_VERSION = "2026-11-27";
+export const NOVEDADES_VERSION = "2026-11-27-b";
 
 /**
  * `roles`: solo para esos perfiles. `sucursales`: solo para los gerentes de esas sucursales (p. ej. un asesor nuevo en una
@@ -16,6 +16,14 @@ export const NOVEDADES_VERSION = "2026-11-27";
 export type Novedad = { icono: string; titulo: string; texto: string; v: string; roles?: Role[]; sucursales?: Sucursal[] };
 
 export const NOVEDADES: Novedad[] = [
+  {
+    icono: "🧑‍💼",
+    titulo: "Administra los asesores de cada sucursal",
+    v: "2026-11-27-b",
+    roles: ["coord"],
+    texto:
+      "En Usuarios, al abrir una sucursal, ahora puedes agregar asesores (+ Agregar asesor) y darlos de baja (Dar de baja). Al dar de baja eliges quién lo sustituye (puede ser un asesor nuevo) y qué pasa con sus leads: que pasen al reemplazo (todos, solo los de un periodo o solo los abiertos) o que se queden a su nombre como histórico. Antes de confirmar ves cuántos leads se mueven. No se borra nada y puedes reactivar a un asesor.",
+  },
   {
     icono: "👥",
     titulo: "Cambio de asesor en Haciendas",

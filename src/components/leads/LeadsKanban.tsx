@@ -8,7 +8,8 @@ import { EstadoBadge } from "./EstadoBadge";
 import { OverdueIndicator } from "./OverdueIndicator";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
-import { FUENTE_LABELS, SUCURSAL_LABELS, ESTADO_LABELS, GERENTE_ALLOWED_ESTADOS, asesoresFor } from "@/lib/catalogs";
+import { FUENTE_LABELS, SUCURSAL_LABELS, ESTADO_LABELS, GERENTE_ALLOWED_ESTADOS } from "@/lib/catalogs";
+import { useAsesoresFor } from "@/components/AsesoresProvider";
 import { puedeAsignarAsesor } from "@/lib/asignacion";
 import { KANBAN_COLUMNS, columnOf } from "@/lib/kanban";
 import { isOverdue } from "@/lib/leadPolicy";
@@ -57,6 +58,7 @@ export function LeadsKanban({
   const [shown, setShown] = useState<Record<string, number>>({});
 
   const showSucursal = role === "coord";
+  const asesoresFor = useAsesoresFor();
   const canTo = (target: Estado) => role === "coord" || GERENTE_ALLOWED_ESTADOS.includes(target);
 
   async function apply(lead: LeadDTO, target: Estado, extra: Record<string, unknown> = {}) {

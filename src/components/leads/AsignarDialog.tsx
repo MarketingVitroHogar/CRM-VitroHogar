@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import type { Estado, Sucursal } from "@prisma/client";
 import { Modal } from "@/components/ui/Modal";
-import { SUCURSAL_LABELS, asesoresFor } from "@/lib/catalogs";
+import { SUCURSAL_LABELS } from "@/lib/catalogs";
+import { useAsesoresFor } from "@/components/AsesoresProvider";
 
 /** Lo mínimo de un lead para poder asignarle asesor (sirve para la lista, el Kanban y la campana). */
 export type AsignarLead = { id: string; nombre: string; interes: string; sucursal: Sucursal; estado: Estado; asesor?: string | null };
@@ -43,6 +44,7 @@ export function AsignarDialog({
   }
   if (!lead && lastId !== null) setLastId(null);
 
+  const asesoresFor = useAsesoresFor();
   const roster = lead ? asesoresFor(lead.sucursal) : [];
   const puedeContactado = lead?.estado === "NUEVO";
 

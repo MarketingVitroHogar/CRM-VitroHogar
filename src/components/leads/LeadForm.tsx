@@ -12,8 +12,8 @@ import {
   ESTADOS,
   ESTADO_LABELS,
   ESTADOS_HISTORICOS,
-  asesoresFor,
 } from "@/lib/catalogs";
+import { useAsesoresFor } from "@/components/AsesoresProvider";
 import { responsableOptionsFor, defaultResponsableFor } from "@/lib/leadPolicy";
 import { puedeAsignarAsesor } from "@/lib/asignacion";
 import { formatDateOnly } from "@/lib/dateOnly";
@@ -142,7 +142,10 @@ export function LeadForm({
   // Responsable options always match the currently-selected sucursal (coord)
   // or the gerente's own fixed sucursal.
   const responsableOptions = responsableOptionsFor(watchedSucursal);
-  const asesorOptions = asesoresFor(watchedSucursal);
+  const asesoresActivos = useAsesoresFor()(watchedSucursal);
+  // Si el lead tiene un asesor que ya no está activo (histórico), se conserva como opción para no borrarlo al guardar.
+  const asesorOptions =
+    lead?.asesor && lead.sucursal === watchedSucursal && !asesoresActivos.includes(lead.asesor) ? [...asesoresActivos, lead.asesor] : asesoresActivos;
 
   // Per spec: if coord changes sucursal, auto-reassign responsable to the new
   // branch's gerente unless the user already picked CM/Coordinador manually,
@@ -390,10 +393,11 @@ export function LeadForm({
               {asesorOptions.map((a) => (
                 <option key={a} value={a}>
                   {a}
+                  {asesoresActivos.includes(a) ? "" : " (ya no está activo)"}
                 </option>
               ))}
             </select>
-            {asesorOptions.length === 0 && <p className="mt-1 text-xs text-slate-400">Esta sucursal aún no tiene asesores registrados.</p>}
+            {asesoresActivos.length === 0 && <p className="mt-1 text-xs text-slate-400">Esta sucursal aún no tiene asesores registrados.</p>}
           </div>
         )}
 

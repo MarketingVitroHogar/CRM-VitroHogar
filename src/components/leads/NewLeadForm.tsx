@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Fuente, Sucursal } from "@prisma/client";
-import { FUENTES, FUENTE_LABELS, SUCURSALES, SUCURSAL_LABELS, ESTADO_LABELS, asesoresFor } from "@/lib/catalogs";
+import { FUENTES, FUENTE_LABELS, SUCURSALES, SUCURSAL_LABELS, ESTADO_LABELS } from "@/lib/catalogs";
+import { useAsesoresFor } from "@/components/AsesoresProvider";
 import { puedeAsignarAsesor } from "@/lib/asignacion";
 import { formatDateOnly } from "@/lib/dateOnly";
 import { formatTelefono, soloDigitos, telefonoValido } from "@/lib/telefono";
@@ -34,6 +35,7 @@ export function NewLeadForm({
   onCancel?: () => void;
   onDirty?: (dirty: boolean) => void;
 } = {}) {
+  const asesoresFor = useAsesoresFor();
   const cols2 = panel ? "" : "sm:grid-cols-2";
   const wide = panel ? "" : "sm:col-span-2";
   const router = useRouter();

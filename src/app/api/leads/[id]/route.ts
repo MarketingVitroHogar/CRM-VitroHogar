@@ -12,10 +12,10 @@ import { LeadAsesorUpdateSchema, LeadCoordUpdateSchema, LeadGerenteUpdateSchema 
 import {
   autoProximoSeguimientoIfMissing,
   defaultResponsableFor,
-  isValidAsesorFor,
   isValidResponsableFor,
   resolveFechaCierre,
 } from "@/lib/leadPolicy";
+import { isValidAsesorFor } from "@/lib/asesores";
 import { puedeAsignarAsesor } from "@/lib/asignacion";
 import { Sucursal, Estado } from "@prisma/client";
 
@@ -98,7 +98,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     if (patch.asesor !== undefined) {
       const asesorValue = ((patch.asesor as string | null) ?? "").trim() || null;
-      if (!isValidAsesorFor(nextSucursal, asesorValue)) {
+      const sigueIgual = asesorValue !== null && asesorValue === existing.asesor && nextSucursal === existing.sucursal;
+      if (!sigueIgual && !(await isValidAsesorFor(nextSucursal, asesorValue))) {
         return NextResponse.json(
           { error: "asesor inválido para la sucursal del lead" },
           { status: 400 }
@@ -109,7 +110,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       patch.sucursal !== undefined &&
       patch.sucursal !== existing.sucursal &&
       existing.asesor &&
-      !isValidAsesorFor(nextSucursal, existing.asesor)
+      !(await isValidAsesorFor(nextSucursal, existing.asesor))
     ) {
       // coord moved the lead to a different branch — the old asesor doesn't
       // work there, so clear it rather than leave a stale/invalid name.
